@@ -78,6 +78,9 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Dados: arquivos .parquet (binários volumosos; em geral não versionar)
+*.parquet
+
 # IPython
 profile_default/
 ipython_config.py

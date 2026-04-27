@@ -1,0 +1,10 @@
+# requirements.txt
+transformers>=4.40.0
+accelerate>=0.29.0
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-core>=0.2.0
+langgraph>=0.1.0
+faiss-cpu>=1.7.4
+sentence-transformers>=2.7.0
+pandas>=2.0.0

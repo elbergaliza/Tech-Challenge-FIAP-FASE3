@@ -1,0 +1,91 @@
+-Nao existe GPU nesse notebook.
+Nome do host:                              LOKI
+Nome do sistema operacional:               Microsoft Windows 11 Pro
+Vers�o do sistema operacional:             10.0.26200 N/A compila��o 26200
+Fabricante do sistema operacional:         Microsoft Corporation
+Configura��o do sistema operacional:       Esta��o de trabalho aut�noma
+Tipo de compila��o do sistema operacional: Multiprocessor Free
+Propriet�rio registrado:                   user
+Organiza��o registrada:                    
+Identifica��o do produto:                  00330-80000-00000-AA514
+Data da instala��o original:               23/10/2024, 17:38:17
+Tempo de Inicializa��o do Sistema:         21/04/2026, 14:52:59
+Fabricante do sistema:                     LENOVO
+Modelo do sistema:                         20RB0010BR
+Tipo de sistema:                           x64-based PC
+Processador(es):                           1 processador(es) instalado(s).
+                                           [01]: Intel64 Family 6 Model 142 Stepping 12 GenuineIntel ~2301 Mhz
+Vers�o do BIOS:                            LENOVO R16ET43W (1.29 ), 09/12/2024
+Diret�rio do Windows:                      C:\WINDOWS
+Diret�rio do sistema:                      C:\WINDOWS\system32
+Inicializar dispositivo:                   \Device\HarddiskVolume1
+Localidade do sistema:                     pt-br;Portugu�s (Brasil)
+Localidade de entrada:                     pt-br;Portugu�s (Brasil)
+Fuso hor�rio:                              (UTC-03:00) Bras�lia
+Mem�ria f�sica total:                      16.158 MB
+Mem�ria f�sica dispon�vel:                 4.480 MB
+Mem�ria Virtual: Tamanho M�ximo:           20.023 MB
+Mem�ria Virtual: Dispon�vel:               2.479 MB
+Mem�ria Virtual: Em Uso:                   17.544 MB
+Local(s) do Arquivo de P�gina:             C:\pagefile.sys
+Dom�nio:                                   WORKGROUP
+Servidor de Logon:                         \\LOKI
+Hotfix(es):                                4 hotfix(es) instalado(s).
+                                           [01]: KB5082417
+                                           [02]: KB5054156
+                                           [03]: KB5083769
+                                           [04]: KB5088467
+Placa(s) de Rede:                          7 NIC(s) instalado(s).
+                                           [01]: Intel(R) Wi-Fi 6 AX201 160MHz
+                                                 Nome da conex�o: Wi-Fi
+                                                 Status:          M�dia desconectada
+                                           [02]: Realtek PCIe GbE Family Controller
+                                                 Nome da conex�o: Ethernet 2
+                                                 Status:          M�dia desconectada
+                                           [03]: Bluetooth Device (Personal Area Network)
+                                                 Nome da conex�o: Conex�o de Rede Bluetooth
+                                                 Status:          M�dia desconectada
+                                           [04]: VMware Virtual Ethernet Adapter for VMnet1
+                                                 Nome da conex�o: VMware Network Adapter VMnet1
+                                                 DHCP ativado:    Sim
+                                                 Servidor DHCP:   192.168.31.254
+                                                 Endere�o(es) IP
+                                                 [01]: 192.168.31.1
+                                                 [02]: fe80::d598:f42:5c7c:ba73
+                                           [05]: VMware Virtual Ethernet Adapter for VMnet8
+                                                 Nome da conex�o: VMware Network Adapter VMnet8
+                                                 DHCP ativado:    Sim
+                                                 Servidor DHCP:   192.168.203.254
+                                                 Endere�o(es) IP
+                                                 [01]: 192.168.203.1
+                                                 [02]: fe80::ad1c:b681:8885:e626
+                                           [06]: VirtualBox Host-Only Ethernet Adapter
+                                                 Nome da conex�o: Ethernet 3
+                                                 DHCP ativado:    N�o
+                                                 Endere�o(es) IP
+                                                 [01]: 192.168.56.1
+                                                 [02]: fe80::5635:b65d:51f:2f5e
+                                           [07]: Realtek USB FE Family Controller
+                                                 Nome da conex�o: Ethernet 5
+                                                 DHCP ativado:    Sim
+                                                 Servidor DHCP:   192.168.15.1
+                                                 Endere�o(es) IP
+                                                 [01]: 192.168.15.21
+                                                 [02]: fe80::4dab:8ad8:9697:c288
+                                                 [03]: fd69:97f6:b72f:71e4:4dee:8c18:a480:a075
+                                                 [04]: fd69:97f6:b72f:71e4:7144:c751:8afc:1a65
+Seguran�a baseada em virtualiza��o:        Status: Executando
+                                           Propriedades de Seguran�a Necess�rias:
+                                           Propriedades de seguran�a dispon�veis:
+                                                 Suporte para Virtualiza��o de Base
+                                                 Inicializa��o Segura
+                                                 Prote��o do DMA
+                                                 C�digo UEFI Somente Leitura
+                                                 SMM Security Mitigations 1.0
+                                                 Modo de controle de execu��o com base
+                                           Services Configured:
+                                           Services Running:
+                                           App Control for Business policy: Imposto
+                                           App Control for Business user mode policy: Desativado
+                                           Recursos de Seguran�a�Habilitados:
+Requisitos do Hyper-V:                     Hipervisor detectado. Recursos necess�rios para o Hyper-V n�o ser�o exibidos.

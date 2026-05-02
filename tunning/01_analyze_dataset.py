@@ -9,17 +9,49 @@ Este script implementa as decisoes consolidadas do PASSO 1:
   para auditoria e analise de fatias na etapa de avaliacao.
 """
 
+# PEP 563: avalia anotacoes de tipo de forma tardia (strings).
+# Neste modulo: permite usar tipos em assinaturas sem custo circular em import time.
 from __future__ import annotations
 
+# Biblioteca padrao para interface de linha de comando (`ArgumentParser`).
+# Neste modulo: `parse_args()` expoe paths, proporcoes de split, seed e filtros de tokens.
 import argparse
+
+# Biblioteca padrao de funcoes hash criptograficas.
+# Neste modulo: MD5 de `f"{seed}:{group_key}"` para bucketing reproduzivel em `assign_split`.
 import hashlib
+
+# Biblioteca padrao de serializacao JSON.
+# Neste modulo: escrever o manifesto e o relatorio; imprimir o resumo no terminal.
 import json
+
+# Biblioteca padrao de expressoes regulares.
+# Neste modulo: padroes de HTML/URL/whitespace e deteccao de conteudo promocional.
 import re
+
+# Biblioteca padrao do Unicode (normalizacao e propriedades de caracteres).
+# Neste modulo: remover acentos na normalizacao da pergunta para agrupamento e split.
 import unicodedata
+
+# Estrutura da biblioteca padrao `collections` que conta ocorrencias.
+# Neste modulo: agregar motivos de remocao, contagens por split e distribuicoes de metadados.
 from collections import Counter
+
+# ABC tipica para objetos mapeaveis (duck-typing de `dict`-like).
+# Neste modulo: validar cada linha iterada em `load_medpt_rows` antes de copiar para `dict`.
+from collections.abc import Mapping
+
+# Modulo padrao para caminhos de arquivo orientados a objeto.
+# Neste modulo: criar diretorios de saida e referenciar manifesto/relatorio em disco.
 from pathlib import Path
+
+# Modulo padrao de anotacoes de tipo e genericos.
+# Neste modulo: documentar listas, dicionarios, tuplas e iteraveis nas funcoes.
 from typing import Any, Dict, Iterable, List, Tuple
 
+# Hugging Face `datasets`: abstracao de datasets tabulares e integracao com Arrow/Parquet.
+# Neste modulo: carregar o parquet bruto, montar splits com `Dataset`/`DatasetDict` e
+# `save_to_disk` na pasta processada.
 from datasets import Dataset, DatasetDict, load_dataset
 
 
@@ -74,52 +106,71 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset-path",
         default=DEFAULT_DATASET_PATH,
-        help="Caminho local ou URL do parquet do MedPT.",
+        help=(
+            "Caminho local ou URL do parquet do MedPT. "
+            "Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--output-dir",
         default=DEFAULT_OUTPUT_DIR,
-        help="Diretorio de saida para o DatasetDict processado.",
+        help=(
+            "Diretorio de saida para o DatasetDict processado. "
+            "Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--manifest-path",
         default=DEFAULT_MANIFEST_PATH,
-        help="Arquivo JSONL auxiliar com metadados de auditoria.",
+        help=(
+            "Arquivo JSONL auxiliar com metadados de auditoria. "
+            "Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--report-path",
         default=DEFAULT_REPORT_PATH,
-        help="Arquivo JSON com estatisticas e resumo da limpeza.",
+        help=(
+            "Arquivo JSON com estatisticas e resumo da limpeza. "
+            "Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--seed",
         type=int,
         default=42,
-        help="Semente usada no split deterministico por pergunta.",
+        help=(
+            "Semente usada no split deterministico por pergunta. "
+            "Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--train-ratio",
         type=float,
         default=0.8,
-        help="Proporcao de treino.",
+        help="Proporcao de treino. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--validation-ratio",
         type=float,
         default=0.1,
-        help="Proporcao de validacao.",
+        help="Proporcao de validacao. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--min-answer-tokens",
         type=int,
         default=10,
-        help="Numero minimo de tokens aceitos na resposta.",
+        help=(
+            "Numero minimo de tokens aceitos na resposta. Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--max-answer-tokens",
         type=int,
         default=1000,
-        help="Numero maximo de tokens aceitos na resposta.",
+        help=(
+            "Numero maximo de tokens aceitos na resposta. Padrao: %(default)s."
+        ),
     )
     return parser.parse_args()
 
@@ -281,7 +332,17 @@ def load_medpt_rows(dataset_path: str) -> Tuple[List[Dict[str, Any]], str]:
     """
     dataset = load_dataset("parquet", data_files={
                            "train": dataset_path}, split="train")
-    columns = set(dataset.column_names)
+    raw_columns = dataset.column_names
+    if raw_columns is None:
+        raise ValueError(
+            "O dataset retornado nao expoe nomes de colunas (`column_names` ausente)."
+        )
+    if isinstance(raw_columns, dict):
+        raise ValueError(
+            "Esperado um Dataset com split unico ao carregar o parquet; "
+            "`column_names` nao deve ser um mapa por split."
+        )
+    columns = set(raw_columns)
 
     if "answer" in columns:
         answer_column = "answer"
@@ -297,7 +358,13 @@ def load_medpt_rows(dataset_path: str) -> Tuple[List[Dict[str, Any]], str]:
         raise ValueError(
             "Schema invalido: a coluna `question` nao foi encontrada.")
 
-    rows: List[Dict[str, Any]] = [dict(row) for row in dataset]
+    rows: List[Dict[str, Any]] = []
+    for raw in dataset:
+        if not isinstance(raw, Mapping):
+            raise TypeError(
+                f"Tipo de linha inesperado ao iterar o dataset: {type(raw)!r}."
+            )
+        rows.append({str(k): v for k, v in raw.items()})
     return rows, answer_column
 
 

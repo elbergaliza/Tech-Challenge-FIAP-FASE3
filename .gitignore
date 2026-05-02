@@ -81,6 +81,10 @@ target/
 # Dados: arquivos .parquet (binários volumosos; em geral não versionar)
 *.parquet
 
+# Office / Windows: locks e temporários (~$..., ~WRL....tmp), em qualquer pasta
+~$*.*
+~*.tmp
+
 # IPython
 profile_default/
 ipython_config.py

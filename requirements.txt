@@ -1,6 +1,15 @@
-# requirements.txt
-transformers>=4.40.0
-accelerate>=0.29.0
+# Fine-tuning (Unsloth + TRL): faixas alinhadas ao METADATA do pacote `unsloth`,
+# para evitar resolver `trl`/API antiga versus codigo atual (SFTTrainer 0.18+).
+torch>=2.4.0,<2.11.0
+transformers>=4.51.3,<=5.5.0
+accelerate>=0.34.1
+datasets>=3.4.1,<4.4.0
+peft>=0.18.0,!=0.11.0
+trl>=0.18.2,<=0.24.0,!=0.19.0
+bitsandbytes>=0.45.5,!=0.46.0,!=0.48.0
+unsloth>=2026.4.8
+
+# Projeto / RAG
 langchain>=0.2.0
 langchain-community>=0.2.0
 langchain-core>=0.2.0
@@ -8,3 +17,4 @@ langgraph>=0.1.0
 faiss-cpu>=1.7.4
 sentence-transformers>=2.7.0
 pandas>=2.0.0
+bert-score>=0.3.13

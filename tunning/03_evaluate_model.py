@@ -76,50 +76,55 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset-dir",
         default=DEFAULT_DATASET_DIR,
-        help="Diretorio com o DatasetDict processado.",
+        help="Diretorio com o DatasetDict processado. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--manifest-path",
         default=DEFAULT_MANIFEST_PATH,
-        help="Manifesto JSONL salvo no script 01.",
+        help="Manifesto JSONL salvo no script 01. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--adapter-dir",
         default=DEFAULT_ADAPTER_DIR,
-        help="Diretorio do adapter final salvo pelo script 02.",
+        help="Diretorio do adapter final salvo pelo script 02. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--base-model-name",
         default=DEFAULT_BASE_MODEL,
-        help="Nome do modelo base.",
+        help="Nome do modelo base. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--output-dir",
         default=DEFAULT_OUTPUT_DIR,
-        help="Diretorio para salvar predicoes e relatorios.",
+        help="Diretorio para salvar predicoes e relatorios. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--max-eval-samples",
         type=int,
         default=200,
-        help="Numero maximo de exemplos de teste para geracao.",
+        help="Numero maximo de exemplos de teste para geracao. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--max-new-tokens",
         type=int,
         default=256,
-        help="Quantidade maxima de tokens gerados por exemplo.",
+        help="Quantidade maxima de tokens gerados por exemplo. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--temperature",
         type=float,
         default=0.0,
-        help="Temperatura de geracao. 0.0 usa greedy decoding.",
+        help=(
+            "Temperatura de geracao (greedy quando 0.0). Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--compute-bertscore",
         action="store_true",
-        help="Calcula BERTScore se a biblioteca estiver disponivel.",
+        help=(
+            "Calcula BERTScore se a biblioteca estiver disponivel. "
+            "Padrao: %(default)s."
+        ),
     )
     return parser.parse_args()
 

@@ -3,21 +3,53 @@
 
 O script foi pensado para rodar no Google Colab com Tesla T4 15 GB:
 - usa quantizacao 4-bit;
-- aplica PEFT/LoRA com os hiperparametros definidos no PASSO 1;
-- salva checkpoints intermediarios em `data/`;
-- salva o modelo final (adapter) e tokenizer em `pre-trained/`.
+- aplica PEFT/LoRA com hiperparametros fixos no codigo (alinhados ao planejamento);
+- salva checkpoints intermediarios (padrao sob `data/checkpoints/...`, relativos ao CWD);
+- salva o adapter final, tokenizer e `training_metadata.json` (padrao sob `pre-trained/...`).
 """
 
+# PEP 563: avalia anotacoes de tipo de forma tardia (strings).
+# Neste modulo: suporta anotacoes nas assinaturas sem referencias circulares em import time.
 from __future__ import annotations
 
+# Biblioteca padrao para interface de linha de comando (`ArgumentParser`).
+# Neste modulo: `parse_args()` expoe paths, modelo base, hiperparametros de treino (LR, batch,
+# epocas, etc.), intervalos de log/salvamento, seed, limites de amostras e flag de disclaimer.
+# Os hiperparametros LoRA (r, alpha, dropout, target_modules) ficam fixos em codigo, nao na CLI.
 import argparse
-import json
-import os
-from pathlib import Path
-from typing import Dict
 
+# Biblioteca padrao de serializacao JSON.
+# Neste modulo: gravar `training_metadata.json` apos o treino com a configuracao usada.
+import json
+
+# Biblioteca padrao de interface com o processo (variaveis de ambiente).
+# Neste modulo: `os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")` evita avisos do HF tokenizers ao usar o trainer.
+import os
+
+# Modulo padrao para caminhos de arquivo orientados a objeto.
+# Neste modulo: diretorios de checkpoint, saida final e arquivo de metadados.
+from pathlib import Path
+
+# Modulo padrao de anotacoes de tipo.
+# Neste modulo: `Dict` em `format_example`; `Any` no dict `sft_training_kwargs` antes de
+# `SFTConfig(**...)` para alinhar tipagem e versoes do TRL sem ruído estatico.
+from typing import Any, Dict
+
+# Hugging Face `datasets`: estrutura de splits e leitura de dataset em disco.
+# Neste modulo: `load_from_disk` le o diretorio gerado pelo script 01 (tipicamente `DatasetDict`);
+# `main()` rejeita se vier um `Dataset` simples. `DatasetDict` tipa splits apos essa checagem.
 from datasets import DatasetDict, load_from_disk
-from trl import SFTConfig, SFTTrainer
+
+# Hugging Face TRL (Transformer Reinforcement Learning): treino alinhado a transformers.
+# Neste modulo: SFT supervisionado — `SFTConfig` (herda `TrainingArguments`) e `SFTTrainer`
+# treinam no campo `text` com `processing_class` = tokenizer.
+from trl.trainer.sft_config import SFTConfig
+from trl.trainer.sft_trainer import SFTTrainer
+
+# Unsloth: carregamento otimizado de LLMs e integracao com LoRA/PEFT.
+# Neste modulo: `FastLanguageModel` carrega o modelo em 4-bit, aplica adapters com
+# `use_gradient_checkpointing="unsloth"` em `get_peft_model`; `is_bfloat16_supported`
+# define `bf16` vs `fp16` no `SFTConfig`.
 from unsloth import FastLanguageModel, is_bfloat16_supported
 
 
@@ -40,113 +72,182 @@ SAFETY_DISCLAIMER = (
 
 
 def parse_args() -> argparse.Namespace:
+    """Lê os argumentos de linha de comando do script.
+
+    Argumentos:
+        Nenhum diretamente. Via `argparse`, a CLI define: diretório do dataset
+        processado (`--dataset-dir`), id do modelo base (`--base-model-name`),
+        pastas de checkpoint e de export final, `--max-seq-length`, batch por
+        dispositivo, passos de acumulação de gradiente, learning rate, épocas,
+        warmup, intervalos de log e de salvamento/avaliação, seed, limites
+        opcionais de amostras para dry run e `--append-safety-disclaimer`.
+        Hiperparâmetros LoRA (rank, alpha, módulos-alvo, etc.) não são expostos
+        aqui; estão fixos em `get_peft_model` e espelhados em
+        `save_training_metadata`.
+
+    Funcionalidade:
+        Monta o `ArgumentParser` e retorna o namespace parseado.
+
+    Saída:
+        `argparse.Namespace` com um atributo por flag definida acima.
+    """
     parser = argparse.ArgumentParser(
         description="Fine-tuning LoRA do Qwen2.5-3B-Instruct com Unsloth.",
     )
     parser.add_argument(
         "--dataset-dir",
         default=DEFAULT_DATASET_DIR,
-        help="Diretorio salvo pelo script 01 com DatasetDict processado.",
+        help=(
+            "Diretorio salvo pelo script 01 com DatasetDict processado. "
+            "Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--base-model-name",
         default=DEFAULT_BASE_MODEL,
-        help="Nome do modelo base no Hugging Face.",
+        help="Nome do modelo base no Hugging Face. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--checkpoint-dir",
         default=DEFAULT_CHECKPOINT_DIR,
-        help="Diretorio para checkpoints intermediarios.",
+        help="Diretorio para checkpoints intermediarios. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--final-dir",
         default=DEFAULT_FINAL_DIR,
-        help="Diretorio para salvar o adapter final e tokenizer.",
+        help=(
+            "Diretorio para salvar o adapter final e tokenizer. "
+            "Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--max-seq-length",
         type=int,
         default=1024,
-        help="Comprimento maximo de sequencia. 1024 e conservador para T4.",
+        help=(
+            "Comprimento maximo de sequencia (conservador para T4). "
+            "Padrao: %(default)s."
+        ),
     )
     parser.add_argument(
         "--per-device-train-batch-size",
         type=int,
         default=2,
-        help="Batch size por dispositivo.",
+        help="Batch size por dispositivo. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--gradient-accumulation-steps",
         type=int,
         default=8,
-        help="Acumulacao de gradientes.",
+        help="Acumulacao de gradientes. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
         default=2e-4,
-        help="Learning rate do fine-tuning LoRA.",
+        help="Learning rate do fine-tuning LoRA. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--num-train-epochs",
         type=float,
         default=1.0,
-        help="Numero de epocas.",
+        help="Numero de epocas. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--warmup-ratio",
         type=float,
         default=0.03,
-        help="Warmup ratio.",
+        help="Warmup ratio. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--logging-steps",
         type=int,
         default=10,
-        help="Intervalo de log.",
+        help="Intervalo de log. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--save-steps",
         type=int,
         default=200,
-        help="Intervalo de checkpoint.",
+        help="Intervalo de checkpoint e avaliacao. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--seed",
         type=int,
         default=42,
-        help="Semente global.",
+        help="Semente global. Padrao: %(default)s.",
     )
     parser.add_argument(
         "--max-train-samples",
         type=int,
         default=None,
-        help="Limita amostras de treino para dry run.",
+        help=(
+            "Limita amostras de treino para dry run. Padrao: %(default)s "
+            "(sem limite)."
+        ),
     )
     parser.add_argument(
         "--max-validation-samples",
         type=int,
         default=None,
-        help="Limita amostras de validacao para dry run.",
+        help=(
+            "Limita amostras de validacao para dry run. Padrao: %(default)s "
+            "(sem limite)."
+        ),
     )
     parser.add_argument(
         "--append-safety-disclaimer",
         action="store_true",
-        help="Anexa um aviso de seguranca ao final de cada resposta de treino.",
+        help=(
+            "Anexa um aviso de seguranca ao final de cada resposta de treino. "
+            "Padrao: %(default)s."
+        ),
     )
     return parser.parse_args()
 
 
 def ensure_required_splits(dataset: DatasetDict) -> None:
+    """Garante que o dataset contém os splits mínimos para o `SFTTrainer`.
+
+    Argumentos:
+        dataset: `DatasetDict` com chaves por split. O script 01 costuma salvar
+            também `test`; essa chave extra não interfere nesta validação.
+
+    Funcionalidade:
+        Exige a presença de `train` e `validation`. Ausência de algum dos dois
+        gera `ValueError` com a lista ordenada de splits faltando.
+
+    Saída:
+        `None` em caso de sucesso; caso contrário, lança exceção.
+    """
     required = {"train", "validation"}
     missing = required.difference(dataset.keys())
     if missing:
-        raise ValueError(f"Dataset processado sem splits obrigatorios: {sorted(missing)}")
+        raise ValueError(
+            f"Dataset processado sem splits obrigatorios: {sorted(missing)}")
 
 
 def apply_limits(dataset: DatasetDict, args: argparse.Namespace) -> DatasetDict:
+    """Reduz opcionalmente o tamanho dos splits para testes rápidos (dry run).
+
+    Argumentos:
+        dataset: conjunto com pelo menos `train` e `validation`.
+        args: namespace com `max_train_samples` e `max_validation_samples`
+            opcionais. Apenas valores truthy disparam recorte (`0` ou `None`
+            não alteram o split correspondente).
+
+    Funcionalidade:
+        Quando o limite está definido e é verdadeiro em Python, recorta com
+        `.select(range(...))` até o mínimo entre o limite e o comprimento do
+        split.
+
+    Saída:
+        O mesmo `DatasetDict`, mutado em `train`/`validation` quando aplicável;
+        retornado para encadeamento no fluxo principal.
+    """
     if args.max_train_samples:
-        dataset["train"] = dataset["train"].select(range(min(args.max_train_samples, len(dataset["train"]))))
+        dataset["train"] = dataset["train"].select(
+            range(min(args.max_train_samples, len(dataset["train"]))))
     if args.max_validation_samples:
         dataset["validation"] = dataset["validation"].select(
             range(min(args.max_validation_samples, len(dataset["validation"])))
@@ -155,6 +256,27 @@ def apply_limits(dataset: DatasetDict, args: argparse.Namespace) -> DatasetDict:
 
 
 def format_example(question: str, answer: str, tokenizer, append_safety_disclaimer: bool) -> Dict[str, str]:
+    """Monta um único exemplo de SFT no formato chat do modelo.
+
+    Argumentos:
+        question: texto da pergunta do usuário.
+        answer: texto da resposta do assistente (dataset bruto).
+        tokenizer: tokenizer HF (ou compatível) com `apply_chat_template`;
+            instância vinda de `FastLanguageModel.from_pretrained`.
+        append_safety_disclaimer: se verdadeiro, anexa `SAFETY_DISCLAIMER` ao
+            final da resposta quando ainda não estiver presente (comparação
+            case-insensitive).
+
+    Funcionalidade:
+        Constrói mensagens `system` / `user` / `assistant` usando
+        `SYSTEM_MESSAGE`; serializa com `apply_chat_template(..., tokenize=False,
+        add_generation_prompt=False)`. Em qualquer exceção nesse caminho, usa
+        fallback textual com marcadores `[SYSTEM]`, `[USER]`, `[ASSISTANT]`.
+
+    Saída:
+        Dicionário com a chave `"text"` contendo a string do exemplo alinhada
+        ao `dataset_text_field` / treino SFT.
+    """
     assistant_answer = answer.strip()
     if append_safety_disclaimer and SAFETY_DISCLAIMER.lower() not in assistant_answer.lower():
         assistant_answer = f"{assistant_answer}\n\n{SAFETY_DISCLAIMER}"
@@ -181,6 +303,24 @@ def format_example(question: str, answer: str, tokenizer, append_safety_disclaim
 
 
 def prepare_text_datasets(dataset: DatasetDict, tokenizer, args: argparse.Namespace) -> DatasetDict:
+    """Converte colunas `question`/`answer` em datasets só com coluna `text`.
+
+    Argumentos:
+        dataset: `DatasetDict` já validado quanto a `train` e `validation`,
+            com colunas `question` e `answer`. Outros splits (ex.: `test`
+            salvo pelo script 01) não são mapeados aqui e permanecem intactos
+            no objeto original, mas não entram no retorno.
+        tokenizer: repassado a `format_example`.
+        args: fonte de `append_safety_disclaimer`.
+
+    Funcionalidade:
+        Aplica `.map` em batch em `train` e `validation`, gerando `text` via
+        `format_example` e removendo todas as colunas originais desses splits.
+
+    Saída:
+        Novo `DatasetDict` contendo apenas as chaves `train` e `validation`,
+        cada uma com a coluna `text` esperada pelo `SFTTrainer`.
+    """
     def formatter(batch):
         texts = []
         for question, answer in zip(batch["question"], batch["answer"]):
@@ -211,6 +351,23 @@ def prepare_text_datasets(dataset: DatasetDict, tokenizer, args: argparse.Namesp
 
 
 def save_training_metadata(args: argparse.Namespace, final_dir: Path) -> None:
+    """Persiste hiperparâmetros de treino e bloco fixo LoRA junto ao export final.
+
+    Argumentos:
+        args: valores vindos da CLI necessários para auditoria (modelo base,
+            seq length, batch, otimização, seed, disclaimer).
+        final_dir: diretório de saída do adapter; o arquivo criado é
+            `training_metadata.json` (sobrescrito se já existir).
+
+    Funcionalidade:
+        Monta um dicionário com campos alinhados ao uso em `main` e ao LoRA
+        aplicado em `get_peft_model` (inclui `r`, `alpha`, `dropout`,
+        `target_modules`), mais `system_message` e campos de disclaimer;
+        grava JSON UTF-8 indentado.
+
+    Saída:
+        `None`. Efeito colateral: escrita em `final_dir / "training_metadata.json"`.
+    """
     metadata = {
         "base_model_name": args.base_model_name,
         "max_seq_length": args.max_seq_length,
@@ -243,10 +400,39 @@ def save_training_metadata(args: argparse.Namespace, final_dir: Path) -> None:
 
 
 def main() -> None:
+    """Orquestra carga do dataset, modelo 4-bit, LoRA, treino SFT e exportação.
+
+    Argumentos:
+        Nenhum; usa `parse_args()` para obter a configuração.
+
+    Funcionalidade:
+        Carrega o diretório `--dataset-dir` com `load_from_disk` e exige um
+        `DatasetDict` (caso contrário `ValueError` orientando o uso do script 01).
+        Valida presença de `train` e `validation`, aplica limites opcionais de
+        amostras, cria pastas de checkpoint e de saída final, carrega o modelo
+        base em 4-bit e o tokenizer via Unsloth, aplica `get_peft_model`,
+        converte apenas treino/validação para coluna `text`, instancia
+        `SFTTrainer` com `processing_class=tokenizer` e `SFTConfig` (inclui
+        `dataset_text_field`, `max_length`, avaliação a cada `save_steps`),
+        executa `train()`, persiste o modelo com `trainer.save_model(final_dir)`,
+        salva o tokenizer em `final_dir`, grava `training_metadata.json` e
+        imprime os caminhos de checkpoints e do export. O split `test`, se
+        existir no disco, não é usado neste treino.
+
+    Saída:
+        `None`. Efeitos: treino, checkpoints, adapter/tokenizer/metadados em
+        disco e mensagens no stdout.
+    """
     args = parse_args()
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-    dataset = load_from_disk(args.dataset_dir)
+    loaded = load_from_disk(args.dataset_dir)
+    if not isinstance(loaded, DatasetDict):
+        raise ValueError(
+            "Esperado DatasetDict salvo pelo script 01 (diretorio com splits como "
+            f"train/). Recebido: {type(loaded).__name__}."
+        )
+    dataset = loaded
     ensure_required_splits(dataset)
     dataset = apply_limits(dataset, args)
 
@@ -286,41 +472,45 @@ def main() -> None:
     # 3) Converte o dataset limpo para o formato textual esperado pelo trainer.
     text_datasets = prepare_text_datasets(dataset, tokenizer, args)
 
+    # TRL 0.18+ (ex.: 0.24 com Unsloth): tokenizer -> processing_class;
+    # dataset_text_field / packing / comprimento ficam em SFTConfig (`max_length`).
+    # SFTConfig herda TrainingArguments com muitos campos; usar dict + unpack reduz falsos positivos no basedpyright.
+    sft_training_kwargs: dict[str, Any] = {
+        "output_dir": str(checkpoint_dir),
+        "dataset_text_field": "text",
+        "max_length": args.max_seq_length,
+        "packing": False,
+        "logging_steps": args.logging_steps,
+        "save_steps": args.save_steps,
+        "save_strategy": "steps",
+        "eval_strategy": "steps",
+        "eval_steps": args.save_steps,
+        "per_device_train_batch_size": args.per_device_train_batch_size,
+        "per_device_eval_batch_size": args.per_device_train_batch_size,
+        "gradient_accumulation_steps": args.gradient_accumulation_steps,
+        "learning_rate": args.learning_rate,
+        "num_train_epochs": args.num_train_epochs,
+        "warmup_ratio": args.warmup_ratio,
+        "lr_scheduler_type": "cosine",
+        "weight_decay": 0.01,
+        "optim": "adamw_8bit",
+        "fp16": not is_bfloat16_supported(),
+        "bf16": is_bfloat16_supported(),
+        "report_to": "none",
+        "seed": args.seed,
+    }
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=text_datasets["train"],
         eval_dataset=text_datasets["validation"],
-        dataset_text_field="text",
-        max_seq_length=args.max_seq_length,
-        packing=False,
-        args=SFTConfig(
-            output_dir=str(checkpoint_dir),
-            logging_steps=args.logging_steps,
-            save_steps=args.save_steps,
-            save_strategy="steps",
-            eval_strategy="steps",
-            eval_steps=args.save_steps,
-            per_device_train_batch_size=args.per_device_train_batch_size,
-            per_device_eval_batch_size=args.per_device_train_batch_size,
-            gradient_accumulation_steps=args.gradient_accumulation_steps,
-            learning_rate=args.learning_rate,
-            num_train_epochs=args.num_train_epochs,
-            warmup_ratio=args.warmup_ratio,
-            lr_scheduler_type="cosine",
-            weight_decay=0.01,
-            optim="adamw_8bit",
-            fp16=not is_bfloat16_supported(),
-            bf16=is_bfloat16_supported(),
-            report_to="none",
-            seed=args.seed,
-        ),
+        args=SFTConfig(**sft_training_kwargs),
     )
 
     trainer.train()
 
     # 4) Salva o adapter final e o tokenizer para inferencia e avaliacao posterior.
-    trainer.model.save_pretrained(str(final_dir))
+    trainer.save_model(str(final_dir))
     tokenizer.save_pretrained(str(final_dir))
     save_training_metadata(args, final_dir)
 

@@ -1,3 +1,8 @@
+# Pastas muito grandes
+data/checkpoints/
+data/processed/medpt_qa/train/
+data/processed/medpt_qa_manifest.jsonl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -1,0 +1,20 @@
+# Dependencias minimas para `tunning/01_analyze_dataset.py`, `02_finetune_lora.py` e `03_evaluate_model.py`.
+# Mesmas faixas do bloco inicial de requirements.txt (Unsloth + TRL + 4-bit).
+# Uso no Colab (exemplo):
+#   pip install -r requirements-finetune.txt
+# Reinicie o runtime se o Colab pedir apos atualizar torch/unsloth.
+
+#torch>=2.4.0,<2.11.0
+#transformers>=4.51.3,<=5.5.0
+transformers>=4.51.3
+accelerate>=0.34.1
+#datasets>=3.4.1,<4.4.0
+datasets>=3.4.1
+#peft>=0.18.0,!=0.11.0
+peft>=0.18.0
+#trl>=0.18.2,<=0.24.0,!=0.19.0
+trl>=0.18.2
+#bitsandbytes>=0.45.5,!=0.46.0,!=0.48.0
+bitsandbytes>=0.45.5
+unsloth>=2026.4.8
+bert-score>=0.3.13

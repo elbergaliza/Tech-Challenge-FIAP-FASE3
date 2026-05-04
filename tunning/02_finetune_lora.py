@@ -24,6 +24,15 @@ import json
 
 # Biblioteca padrao de interface com o processo (variaveis de ambiente).
 # Neste modulo: `os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")` evita avisos do HF tokenizers ao usar o trainer.
+# O que é os aqui: uso de os.environ (não só “interface genérica”).
+# O que faz o setdefault: roda em main() antes do treino.
+# Por que TOKENIZERS_PARALLELISM=false:
+#   .tokenizers em Rust pode usar paralelismo;
+#   .com DataLoader, multiprocessing ou fork isso pode gerar aviso de não ser
+#       fork-safe ou instabilidade;
+#   .desligar o paralelismo do tokenizer é o padrão recomendado com HF Trainer.
+# Por que setdefault: só preenche se a variável ainda não existir,
+#   para o ambiente poder definir antes da execução.
 import os
 
 # Modulo padrao para caminhos de arquivo orientados a objeto.
@@ -40,17 +49,17 @@ from typing import Any, Dict
 # `main()` rejeita se vier um `Dataset` simples. `DatasetDict` tipa splits apos essa checagem.
 from datasets import DatasetDict, load_from_disk
 
-# Hugging Face TRL (Transformer Reinforcement Learning): treino alinhado a transformers.
-# Neste modulo: SFT supervisionado — `SFTConfig` (herda `TrainingArguments`) e `SFTTrainer`
-# treinam no campo `text` com `processing_class` = tokenizer.
-from trl.trainer.sft_config import SFTConfig
-from trl.trainer.sft_trainer import SFTTrainer
-
 # Unsloth: carregamento otimizado de LLMs e integracao com LoRA/PEFT.
 # Neste modulo: `FastLanguageModel` carrega o modelo em 4-bit, aplica adapters com
 # `use_gradient_checkpointing="unsloth"` em `get_peft_model`; `is_bfloat16_supported`
 # define `bf16` vs `fp16` no `SFTConfig`.
 from unsloth import FastLanguageModel, is_bfloat16_supported
+
+# Hugging Face TRL (Transformer Reinforcement Learning): treino alinhado a transformers.
+# Neste modulo: SFT supervisionado — `SFTConfig` (herda `TrainingArguments`) e `SFTTrainer`
+# treinam no campo `text` com `processing_class` = tokenizer.
+from trl.trainer.sft_config import SFTConfig
+from trl.trainer.sft_trainer import SFTTrainer
 
 
 DEFAULT_DATASET_DIR = "data/processed/medpt_qa"
@@ -426,6 +435,8 @@ def main() -> None:
     args = parse_args()
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
+    # Carrega o diretório `--dataset-dir` com `load_from_disk` e exige um
+    # `DatasetDict` (caso contrário `ValueError` orientando o uso do script 01).
     loaded = load_from_disk(args.dataset_dir)
     if not isinstance(loaded, DatasetDict):
         raise ValueError(
@@ -442,6 +453,42 @@ def main() -> None:
     final_dir.mkdir(parents=True, exist_ok=True)
 
     # 1) Carrega o modelo base em 4-bit, adequado para o ambiente do Colab.
+    # Unsloth: `FastLanguageModel.from_pretrained` baixa (se necessario) o causal LM do
+    #   Hugging Face Hub e o tokenizer associado, ja preparados para treino eficiente.
+    #   - `model_name`: id do repo (ex. Qwen2.5-Instruct) vindo de `--base-model-name`;
+    #
+    #   - `max_seq_length`: teto de tokens por sequencia (alinhado ao RoPE/comprimento do trainer);
+    # “Teto de tokens por sequência” — é o comprimento máximo que cada exemplo de texto
+    #   pode ter em tokens: entradas mais longas tendem a ser truncadas e as mais curtas
+    #   preenchidas (padding), até esse limite. No seu script, o mesmo valor vem de
+    #   --max-seq-length (padrão 1024).
+    # “Alinhado ao RoPE” — modelos como o Qwen usam RoPE (Rotary Positional Embedding)
+    #   para codificar posição das palavras. O modelo foi treinado com um certo contexto máximo;
+    #   definir um max_seq_length coerente com o que o modelo e a biblioteca esperam evita
+    #   usar contextos absurdamente maiores que o suportado (e mantém o uso de posições
+    #   dentro do que o modelo “conhece”). Em pipelines tipo Unsloth/TRL isso costuma ser
+    #   amarrado ao que a lib considera comprimento máximo de atenção.
+    # “… / comprimento do trainer” — no mesmo arquivo, esse valor é reutilizado no SFTConfig
+    #   como max_length, ou seja, o treinador SFT usa o mesmo teto para tokenizar/
+    #   truncar os exemplos no dataset de treino. Por isso o comentário diz que está
+    #   alinhado ao trainer: uma única configuração para carga do modelo e para o loop de treino.
+    #
+    # Em resumo: é o limite único de tamanho de sequência (em tokens) compartilhado
+    #   entre o carregamento do modelo e o treino supervisionado.
+    #
+    #   - `load_in_4bit=True`: quantizacao 4-bit (bitsandbytes) para caber em GPU limitada (ex. T4 16 GB);
+    #   - `full_finetuning=False`: nao ajustar todos os pesos do backbone agora; o proximo passo e LoRA/PEFT.
+    # full_finetuning=True (hipotético) sinalizaria intenção de atualizar todos os parâmetros do
+    #   modelo base no treino — o “backbone” inteiro (camadas do transformer pré-treinado).
+    # full_finetuning=False significa que neste carregamento não se está preparando o modelo
+    #   para esse modo. Em vez disso, a ideia é manter a maior parte dos pesos fixos
+    #   (ou só treinar uma fração pequena depois).
+    # No fluxo do seu script, o comentário liga isso ao passo seguinte:
+    #   get_peft_model, que coloca adaptadores LoRA em certas camadas.
+    #   Só esses adaptadores (e não todas as matrizes gigantes do modelo) são treinados
+    #   de forma principal — isto é PEFT (Parameter-Efficient Fine-Tuning).
+    # Resumo: "Não vamos fazer fine-tuning completo do modelo agora; vamos treinar em
+    #   cima dele com LoRA/PEFT no próximo passo."
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.base_model_name,
         max_seq_length=args.max_seq_length,
@@ -449,7 +496,20 @@ def main() -> None:
         full_finetuning=False,
     )
 
-    # 2) Aplica LoRA com os hiperparametros definidos no planejamento.
+    # 2) `FastLanguageModel.get_peft_model` injeta adaptadores LoRA via PEFT: o backbone
+    # permanece congelado e so matrizes de baixo rank em projecoes escolhidas recebem
+    # gradiente durante o treino.
+    # - `model`: instancia retornada por `from_pretrained` (4-bit, preparada para PEFT);
+    # - `r`: rank LoRA — dimensao das matrizes A/B; mais rank = mais capacidade e mais VRAM;
+    # - `target_modules`: submodulos lineares onde o LoRA e aplicado (atencao multi-cabeca
+    #   q/k/v/o_proj + MLP gate/up/down no estilo Qwen/Llama);
+    # - `lora_alpha`: fator de escala das atualizacoes em relacao a `r` (escala efetiva ~ alpha/r;
+    #   aqui 64 com r=32, padrao comum alpha = 2*r);
+    # - `lora_dropout`: dropout aplicado ao caminho LoRA para reduzir sobreajuste;
+    # - `bias="none"`: nao treinar bias adicional nos blocos adaptados;
+    # - `use_gradient_checkpointing="unsloth"`: economiza VRAM trocando por mais computacao
+    #   no backward (integracao Unsloth);
+    # - `random_state`: semente para inicializar os adapters de forma reprodutivel (`--seed`).
     model = FastLanguageModel.get_peft_model(
         model,
         r=32,
@@ -470,7 +530,17 @@ def main() -> None:
     )
 
     # 3) Converte o dataset limpo para o formato textual esperado pelo trainer.
+    # Converte apenas treino/validação para coluna `text`. O split `test`, se
+    # existir no disco, não é usado neste treino.
+    # TODO: NAO ENTENDI ESSA FUNCAO
     text_datasets = prepare_text_datasets(dataset, tokenizer, args)
+
+    # TRL 0.18+ (ex.: 0.24 com Unsloth): tokenizer -> processing_class;
+    # Instancia `SFTTrainer` com `processing_class=tokenizer` e `SFTConfig` (inclui
+    # `dataset_text_field`, `max_length`, avaliação a cada `save_steps`).
+    #  packing / comprimento ficam em SFTConfig (`max_length`).
+    # SFTConfig herda TrainingArguments com muitos campos;
+    # TRL/dict: usar dict + unpack reduz falsos positivos no basedpyright  ao desempacotar no SFTConfig.
 
     # TRL 0.18+ (ex.: 0.24 com Unsloth): tokenizer -> processing_class;
     # dataset_text_field / packing / comprimento ficam em SFTConfig (`max_length`).

@@ -4,6 +4,14 @@ Sistema de assistente médico com RAG e agentes especializados.
 
 ---
 
+## Fine-tuning MedPT (Google Colab)
+
+Guia passo a passo para `tunning/01_analyze_dataset.py`, `02_finetune_lora.py` e `03_evaluate_model.py`: [docs/colab_02_03_ambiente.md](docs/colab_02_03_ambiente.md).
+
+Dependências mínimas do pipeline: `pip install -r requirements-finetune.txt`.
+
+---
+
 ## Estrutura de arquivos
 
 ```

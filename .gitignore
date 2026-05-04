@@ -2,6 +2,8 @@
 data/checkpoints/
 data/processed/medpt_qa/train/
 data/processed/medpt_qa_manifest.jsonl
+pre-trained/qwen2.5-3b-medpt-lora/adapter_model.safetensors
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

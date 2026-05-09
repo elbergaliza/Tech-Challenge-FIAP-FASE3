@@ -634,6 +634,7 @@ def main() -> None:
 
     predictions: List[dict] = []
     token_f1_scores: List[float] = []
+
     rouge_l_scores: List[float] = []
     caution_hits = 0
     overconfidence_hits = 0

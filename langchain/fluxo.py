@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────
 # Monta o fluxo LangGraph.
 #
-# Fluxo M1 + M2:
+# Fluxo M1 + M2 + M3:
 #
 #   [INÍCIO]
 #      │
@@ -12,9 +12,9 @@
 #      ▼
 #   [gravidade]      → normaliza + classifica grave/nao_grave
 #      │
-#      ├── grave     → [alerta] → FIM
+#      ├── grave     → [alerta] → [exames] → FIM
 #      │
-#      └── nao_grave → FIM (M3 adicionará exames aqui)
+#      └── nao_grave → [exames] → FIM
 #
 # ─────────────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ from banco_de_conhecimento import IndiceProtocolo
 from nos.classificacao import criar_no_classificacao
 from nos.gravidade import criar_no_gravidade, rotear_gravidade
 from nos.alerta import criar_no_alerta
+from nos.exames import criar_no_exames
 
 
 # ─── Estado da conversa ───────────────────────────────────────
@@ -55,6 +56,11 @@ class EstadoTriagem(TypedDict, total=False):
     doencas_nao_graves: list[str]   # subconjunto de doencas_suspeitas
     alerta: str | None              # mensagem de urgência, None se nao_grave
 
+    # Exames (Nó 3b - M3)
+    exames_sugeridos: dict[str, list[str]]
+    fontes_exames: dict[str, list[str]]
+    justificativa_exames: dict[str, str]
+
 
 # ─── Monta o grafo ────────────────────────────────────────────
 
@@ -73,6 +79,7 @@ def montar_fluxo(modelo, indice: IndiceProtocolo):
     no_classificacao = criar_no_classificacao(indice, modelo)
     no_gravidade = criar_no_gravidade()
     no_alerta = criar_no_alerta()
+    no_exames = criar_no_exames(indice, modelo)
 
     grafo = StateGraph(EstadoTriagem)
 
@@ -80,22 +87,24 @@ def montar_fluxo(modelo, indice: IndiceProtocolo):
     grafo.add_node("classificacao", no_classificacao)
     grafo.add_node("gravidade", no_gravidade)
     grafo.add_node("alerta", no_alerta)
+    grafo.add_node("exames", no_exames)
 
     # Arestas
     grafo.set_entry_point("classificacao")
     grafo.add_edge("classificacao", "gravidade")
 
-    # Aresta condicional: grave → alerta | nao_grave → END
+    # Aresta condicional: grave → alerta_e_exames | nao_grave → exames
     grafo.add_conditional_edges(
         "gravidade",
         rotear_gravidade,
         {
-            "alerta": "alerta",
-            "fim_sem_exames": END,   # placeholder até M3
+            "alerta_e_exames": "alerta",
+            "exames": "exames",
         },
     )
-    grafo.add_edge("alerta", END)
+    grafo.add_edge("alerta", "exames")
+    grafo.add_edge("exames", END)
 
     fluxo_compilado = grafo.compile()
-    print("[fluxo] Grafo de triagem montado (M1: classificação | M2: gravidade + alerta)")
+    print("[fluxo] Grafo de triagem montado (M1 classificacao | M2 gravidade+alerta | M3 exames)")
     return fluxo_compilado

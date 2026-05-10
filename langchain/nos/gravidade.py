@@ -36,6 +36,16 @@ _REGRAS: dict[str, dict[str, str]] = {
 
 # Alias: "covid-19" aponta para as mesmas regras de "covid"
 _REGRAS["covid-19"] = _REGRAS["covid"]
+_REGRAS["covid_19"] = _REGRAS["covid"]
+
+
+def _normalizar_chave(texto: str) -> str:
+    if not texto:
+        return ""
+    chave = unicodedata.normalize("NFD", texto.lower().strip())
+    chave = "".join(c for c in chave if unicodedata.category(c) != "Mn")
+    chave = chave.replace("-", "_").replace(" ", "_")
+    return chave
 
 
 # ─── Funções auxiliares ───────────────────────────────────────
@@ -71,7 +81,7 @@ def classificar_gravidade(doenca: str, label_normalizado: str) -> str:
     A chave de doença é normalizada (lowercase).
     Fallback: 'nao_grave' para doença ou label desconhecido.
     """
-    chave = doenca.lower().strip()
+    chave = _normalizar_chave(doenca)
     regras_doenca = _REGRAS.get(chave, {})
     return regras_doenca.get(label_normalizado, "nao_grave")
 
@@ -138,5 +148,5 @@ def rotear_gravidade(estado: dict) -> str:
     Retorna o nome do próximo nó com base em max_gravidade.
     """
     if estado.get("max_gravidade") == "grave":
-        return "alerta"
-    return "fim_sem_exames"  # placeholder até M3 existir
+        return "alerta_e_exames"
+    return "exames"

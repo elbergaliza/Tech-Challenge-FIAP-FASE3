@@ -63,6 +63,7 @@ class TestFluxoM2:
         assert resultado["max_gravidade"] == "nao_grave"
         assert resultado["doencas_graves"] == []
         assert resultado["alerta"] is None
+        assert "exames_sugeridos" in resultado
 
     def test_dengue_grupo_b_nao_grave(self, indice):
         """Grupo B → nao_grave, sem alerta."""
@@ -75,6 +76,7 @@ class TestFluxoM2:
 
         assert resultado["max_gravidade"] == "nao_grave"
         assert resultado["alerta"] is None
+        assert "exames_sugeridos" in resultado
 
     def test_sem_doenca_identificada(self, indice):
         """M1 retorna lista vazia → M2 nao_grave sem alerta."""
@@ -84,6 +86,7 @@ class TestFluxoM2:
 
         assert resultado.get("max_gravidade") == "nao_grave"
         assert resultado.get("alerta") is None
+        assert resultado.get("exames_sugeridos") == {}
 
     def test_label_com_maiuscula_normalizado(self, indice):
         """LLM retorna 'Grupo C' com maiúscula → deve classificar como grave."""
@@ -109,3 +112,4 @@ class TestFluxoM2:
         assert "gravidade" in resultado
         assert "documentos_recuperados" in resultado
         assert "fontes" in resultado
+        assert "exames_sugeridos" in resultado

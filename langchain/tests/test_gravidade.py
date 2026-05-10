@@ -7,7 +7,12 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
-from nos.gravidade import normalizar_gravidade, classificar_gravidade, criar_no_gravidade
+from nos.gravidade import (
+    normalizar_gravidade,
+    classificar_gravidade,
+    criar_no_gravidade,
+    rotear_gravidade,
+)
 
 
 class TestNormalizarGravidade:
@@ -70,6 +75,10 @@ class TestClassificarGravidade:
 
     def test_covid19_alias_leve(self):
         assert classificar_gravidade("covid-19", "leve") == "nao_grave"
+
+    @pytest.mark.parametrize("doenca", ["covid", "COVID", "covid-19", "covid 19"])
+    def test_covid_alias_grave(self, doenca):
+        assert classificar_gravidade(doenca, "grave") == "grave"
 
     # Fallback
     def test_doenca_desconhecida_nao_grave(self):
@@ -150,3 +159,11 @@ class TestNoGravidade:
         no = criar_no_gravidade()
         resultado = no(self._estado({"dengue": "Grupo C"}))
         assert resultado["max_gravidade"] == "grave"
+
+
+class TestRoteamentoGravidade:
+    def test_roteamento_nao_grave_vai_para_exames(self):
+        assert rotear_gravidade({"max_gravidade": "nao_grave"}) == "exames"
+
+    def test_roteamento_grave_vai_para_alerta_e_exames(self):
+        assert rotear_gravidade({"max_gravidade": "grave"}) == "alerta_e_exames"

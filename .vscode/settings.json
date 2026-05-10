@@ -1,0 +1,7 @@
+{
+  "python.terminal.useEnvFile": true,
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["langchain/tests"],
+  "python.envFile": "${workspaceFolder}/.env"
+}

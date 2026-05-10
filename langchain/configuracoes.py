@@ -23,3 +23,9 @@ QUANTIDADE_DE_RESULTADOS = 3
 
 # Arquivo onde todas as conversas vão ser salvas para auditoria
 CAMINHO_DO_LOG = "./logs/conversas.jsonl"
+
+# Modelo de embedding multilíngue (melhor para português)
+MODELO_DE_EMBEDDING = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+# Peso do BM25 na busca híbrida (0.6 = prioriza keywords)
+PESO_BM25 = 0.6

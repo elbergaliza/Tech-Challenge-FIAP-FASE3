@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
 from unittest.mock import MagicMock
 from configs.dengue import CONFIG_DENGUE
+from configs.covid import CONFIG_COVID
 from banco_de_conhecimento import parsear_protocolo, IndiceProtocolo
 from fluxo import montar_fluxo
 
@@ -16,7 +17,7 @@ from fluxo import montar_fluxo
 @pytest.fixture(scope="module")
 def indice():
     """Cria índice uma vez para todos os testes do módulo."""
-    chunks = parsear_protocolo(CONFIG_DENGUE)
+    chunks = parsear_protocolo(CONFIG_DENGUE) + parsear_protocolo(CONFIG_COVID)
     return IndiceProtocolo(chunks)
 
 
@@ -58,6 +59,38 @@ class TestNoClassificacao:
 
         assert "dengue" in resultado["doencas_suspeitas"]
         assert resultado["gravidade"]["dengue"] == "grupo_a"
+
+    def test_classificacao_covid_grave(self, indice):
+        """Deve classificar corretamente COVID grave."""
+        modelo = _criar_modelo_mock(
+            '{"doencas_suspeitas": [{"doenca": "covid", "gravidade": "grave", "justificativa": "dispneia e dessaturacao"}], "fontes": ["p.5"]}'
+        )
+        fluxo = montar_fluxo(modelo, indice)
+
+        resultado = fluxo.invoke(
+            {"sintomas": "tosse, febre, dispneia, saturacao baixa"}
+        )
+
+        assert "covid" in resultado["doencas_suspeitas"]
+        assert resultado["gravidade"]["covid"] == "grave"
+
+    def test_classificacao_diferencial_dengue_covid(self, indice):
+        """Deve manter suspeitas múltiplas no mesmo estado."""
+        modelo = _criar_modelo_mock(
+            '{"doencas_suspeitas": ['
+            '{"doenca": "dengue", "gravidade": "grupo_b", "justificativa": "febre e mialgia"}, '
+            '{"doenca": "covid", "gravidade": "moderado", "justificativa": "tosse e odinofagia"}'
+            '], "fontes": ["p.12", "p.5"]}'
+        )
+        fluxo = montar_fluxo(modelo, indice)
+
+        resultado = fluxo.invoke(
+            {"sintomas": "febre, dor no corpo, tosse e dor de garganta"}
+        )
+
+        assert set(resultado["doencas_suspeitas"]) == {"dengue", "covid"}
+        assert resultado["gravidade"]["dengue"] == "grupo_b"
+        assert resultado["gravidade"]["covid"] == "moderado"
 
     def test_classificacao_sem_doenca_identificada(self, indice):
         """Deve retornar lista vazia quando LLM não identifica doença."""

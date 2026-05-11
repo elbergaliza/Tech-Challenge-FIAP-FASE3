@@ -8,13 +8,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 from configs.dengue import CONFIG_DENGUE
+from configs.covid import CONFIG_COVID
 from banco_de_conhecimento import parsear_protocolo, IndiceProtocolo, busca_hibrida
 
 
 @pytest.fixture(scope="module")
 def indice():
     """Cria índice uma vez para todos os testes do módulo."""
-    chunks = parsear_protocolo(CONFIG_DENGUE)
+    chunks = parsear_protocolo(CONFIG_DENGUE) + parsear_protocolo(CONFIG_COVID)
     return IndiceProtocolo(chunks)
 
 
@@ -35,6 +36,14 @@ def test_busca_hibrida_filtro_doenca(indice):
     resultados = busca_hibrida(indice, "tratamento", doenca="dengue")
     for doc in resultados:
         assert doc.metadata["doenca"] == "dengue"
+
+
+def test_busca_hibrida_filtro_doenca_covid(indice):
+    """Filtro por COVID deve retornar apenas chunks COVID."""
+    resultados = busca_hibrida(indice, "diagnostico laboratorial rt-pcr", doenca="covid")
+    assert len(resultados) > 0
+    for doc in resultados:
+        assert doc.metadata["doenca"] == "covid"
 
 
 def test_busca_hibrida_filtro_secao(indice):

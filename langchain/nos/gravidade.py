@@ -25,6 +25,9 @@ _REGRAS: dict[str, dict[str, str]] = {
         "grupo_b": "nao_grave",
         "grupo_c": "grave",
         "grupo_d": "grave",
+        "nao_grave": "nao_grave",
+        "grave": "grave",
+        "critico": "grave",
     },
     "covid": {
         "leve": "nao_grave",
@@ -82,6 +85,12 @@ def classificar_gravidade(doenca: str, label_normalizado: str) -> str:
     Fallback: 'nao_grave' para doença ou label desconhecido.
     """
     chave = _normalizar_chave(doenca)
+    if "dengue" in chave:
+        chave = "dengue"
+    elif "covid" in chave or "coronavirus" in chave:
+        chave = "covid"
+
+    label_normalizado = _normalizar_chave(label_normalizado)
     regras_doenca = _REGRAS.get(chave, {})
     return regras_doenca.get(label_normalizado, "nao_grave")
 

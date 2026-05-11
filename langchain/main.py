@@ -15,12 +15,14 @@
 from carregador_do_modelo import carregar_modelo
 from banco_de_conhecimento import construir_indice
 from fluxo import montar_fluxo
-from configs.dengue import CONFIG_DENGUE
+from configs import CONFIG_DENGUE, CONFIG_COVID
+from nos.confirmacao import criar_no_confirmacao
+from nos.tratamento import criar_no_tratamento
 
 
-def fazer_triagem(sintomas: str, fluxo) -> dict:
+def fazer_triagem_inicial(sintomas: str, fluxo) -> dict:
     """
-    Envia sintomas para o fluxo de triagem e retorna o resultado.
+    Executa classificacao/gravidade/exames e retorna o estado parcial.
 
     Parâmetros:
       sintomas - texto livre descrevendo sintomas do paciente
@@ -29,9 +31,27 @@ def fazer_triagem(sintomas: str, fluxo) -> dict:
     Retorna:
       dicionário com: doencas_suspeitas, gravidade, justificativa, fontes
     """
-    estado_inicial = {"sintomas": sintomas}
+    estado_inicial = {
+        "sintomas": sintomas,
+    }
     estado_final = fluxo.invoke(estado_inicial)
     return estado_final
+
+
+def aplicar_confirmacao_e_tratamento(
+    estado_triagem: dict,
+    dados_confirmacao: dict,
+    no_confirmacao,
+    no_tratamento,
+) -> dict:
+    """Aplica confirmacao medica e, se necessario, gera tratamento."""
+    estado = {**estado_triagem, **dados_confirmacao}
+    estado = no_confirmacao(estado)
+
+    if estado.get("encerrar_sem_confirmacao"):
+        return estado
+
+    return no_tratamento(estado)
 
 
 def main():
@@ -47,11 +67,13 @@ def main():
 
     # ── Passo 2: Constrói o índice de protocolos ──────────────
     print("\n[2/3] Construindo índice de protocolos...")
-    indice = construir_indice(CONFIG_DENGUE)
+    indice = construir_indice([CONFIG_DENGUE, CONFIG_COVID])
 
     # ── Passo 3: Monta o fluxo de triagem ─────────────────────
     print("\n[3/3] Montando o fluxo de triagem...")
-    fluxo = montar_fluxo(modelo, indice)
+    fluxo = montar_fluxo(modelo, indice, incluir_confirmacao_tratamento=False)
+    no_confirmacao = criar_no_confirmacao()
+    no_tratamento = criar_no_tratamento(indice, modelo)
 
     print("\n" + "=" * 55)
     print("  Sistema pronto! Digite 'sair' para encerrar.")
@@ -69,7 +91,7 @@ def main():
         if not sintomas:
             continue
 
-        resultado = fazer_triagem(sintomas, fluxo)
+        resultado = fazer_triagem_inicial(sintomas, fluxo)
 
         print("\n" + "─" * 55)
         print(f"Doenças suspeitas : {resultado.get('doencas_suspeitas', [])}")
@@ -79,6 +101,28 @@ def main():
         if resultado.get("exames_sugeridos"):
             print(f"\nExames sugeridos : {resultado.get('exames_sugeridos', {})}")
             print(f"Fontes exames    : {resultado.get('fontes_exames', {})}")
+
+        resultado_final = aplicar_confirmacao_e_tratamento(
+            resultado,
+            {"human_in_the_loop": True},
+            no_confirmacao,
+            no_tratamento,
+        )
+
+        if resultado_final.get("encerrar_sem_confirmacao"):
+            print("\nConfirmação médica: rejeitada. Fluxo encerrado sem tratamento.")
+        elif resultado_final.get("decisao_medica"):
+            print(f"\nDecisão médica   : {resultado_final.get('decisao_medica')}")
+            if resultado_final.get("doenca_confirmada"):
+                print(f"Doença confirmada: {resultado_final.get('doenca_confirmada')}")
+
+        if resultado_final.get("decisao_medica") == "confirmar":
+            print(f"\nTratamento sugerido:\n{resultado_final.get('tratamento_sugerido', '')}")
+            print(f"Fontes tratamento : {resultado_final.get('fontes_tratamento', [])}")
+
+        if resultado_final.get("decisao_medica") == "pular":
+            print("\nTratamentos por suspeita:")
+            print(f"{resultado_final.get('tratamento_por_suspeita', {})}")
         print("─" * 55 + "\n")
 
 

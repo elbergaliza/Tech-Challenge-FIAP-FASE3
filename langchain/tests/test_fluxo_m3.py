@@ -10,12 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
 from banco_de_conhecimento import IndiceProtocolo, parsear_protocolo
 from configs.dengue import CONFIG_DENGUE
+from configs.covid import CONFIG_COVID
 from fluxo import montar_fluxo
 
 
 @pytest.fixture(scope="module")
 def indice():
-    chunks = parsear_protocolo(CONFIG_DENGUE)
+    chunks = parsear_protocolo(CONFIG_DENGUE) + parsear_protocolo(CONFIG_COVID)
     return IndiceProtocolo(chunks)
 
 

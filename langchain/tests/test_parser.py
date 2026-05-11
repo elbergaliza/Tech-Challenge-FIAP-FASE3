@@ -7,6 +7,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from configs.dengue import CONFIG_DENGUE
+from configs.covid import CONFIG_COVID
 from banco_de_conhecimento import parsear_protocolo
 
 
@@ -53,3 +54,13 @@ def test_parser_detecta_gravidade():
     ]
     # Deve existir ao menos 1 chunk com gravidade identificada
     assert len(chunks_com_gravidade) > 0
+
+
+def test_parser_metadados_covid():
+    """Parser deve gerar metadados mínimos para chunks de COVID."""
+    chunks = parsear_protocolo(CONFIG_COVID)
+    assert len(chunks) > 0
+    for chunk in chunks[:10]:
+        assert chunk.metadata["doenca"] == "covid"
+        assert isinstance(chunk.metadata["secao_tipo"], list)
+        assert len(chunk.metadata["secao_tipo"]) > 0

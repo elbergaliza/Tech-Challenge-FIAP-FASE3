@@ -80,6 +80,14 @@ class TestClassificarGravidade:
     def test_covid_alias_grave(self, doenca):
         assert classificar_gravidade(doenca, "grave") == "grave"
 
+    def test_dengue_com_label_generico_grave(self):
+        """LLM pode devolver label genérico 'grave' para dengue."""
+        assert classificar_gravidade("dengue", "grave") == "grave"
+
+    def test_nome_doenca_expandido_dengue_grave(self):
+        """LLM pode devolver doença como 'Dengue grave'."""
+        assert classificar_gravidade("Dengue grave", "grave") == "grave"
+
     # Fallback
     def test_doenca_desconhecida_nao_grave(self):
         """Doença sem regras definidas → fallback nao_grave."""

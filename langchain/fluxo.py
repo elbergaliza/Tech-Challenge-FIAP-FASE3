@@ -26,6 +26,8 @@ from nos.classificacao import criar_no_classificacao
 from nos.gravidade import criar_no_gravidade, rotear_gravidade
 from nos.alerta import criar_no_alerta
 from nos.exames import criar_no_exames
+from nos.confirmacao import criar_no_confirmacao, rotear_confirmacao
+from nos.tratamento import criar_no_tratamento
 
 
 # ─── Estado da conversa ───────────────────────────────────────
@@ -61,17 +63,37 @@ class EstadoTriagem(TypedDict, total=False):
     fontes_exames: dict[str, list[str]]
     justificativa_exames: dict[str, str]
 
+    # Confirmação + Tratamento (Nó 4/5 - M4)
+    human_in_the_loop: bool
+    decisao_medica: str | None
+    doenca_confirmada: str | None
+    resultado_exames: str | None
+    doencas_para_tratamento: list[str]
+    encerrar_sem_confirmacao: bool
+
+    tratamento_sugerido: str
+    fontes_tratamento: list[str]
+    justificativa_tratamento: str
+    tratamento_por_suspeita: dict[str, str]
+    fontes_tratamento_por_suspeita: dict[str, list[str]]
+    justificativa_tratamento_por_suspeita: dict[str, str]
+
 
 # ─── Monta o grafo ────────────────────────────────────────────
 
 
-def montar_fluxo(modelo, indice: IndiceProtocolo):
+def montar_fluxo(
+    modelo,
+    indice: IndiceProtocolo,
+    incluir_confirmacao_tratamento: bool = True,
+):
     """
     Monta e compila o fluxo LangGraph.
 
     Parâmetros:
       modelo - LLM carregado (ChatOpenAI / Ollama)
       indice - IndiceProtocolo com busca híbrida
+      incluir_confirmacao_tratamento - se False, encerra apos exames
 
     Retorna: grafo compilado pronto para invoke()
     """
@@ -80,6 +102,9 @@ def montar_fluxo(modelo, indice: IndiceProtocolo):
     no_gravidade = criar_no_gravidade()
     no_alerta = criar_no_alerta()
     no_exames = criar_no_exames(indice, modelo)
+    if incluir_confirmacao_tratamento:
+        no_confirmacao = criar_no_confirmacao()
+        no_tratamento = criar_no_tratamento(indice, modelo)
 
     grafo = StateGraph(EstadoTriagem)
 
@@ -88,6 +113,9 @@ def montar_fluxo(modelo, indice: IndiceProtocolo):
     grafo.add_node("gravidade", no_gravidade)
     grafo.add_node("alerta", no_alerta)
     grafo.add_node("exames", no_exames)
+    if incluir_confirmacao_tratamento:
+        grafo.add_node("confirmacao", no_confirmacao)
+        grafo.add_node("tratamento", no_tratamento)
 
     # Arestas
     grafo.set_entry_point("classificacao")
@@ -103,8 +131,30 @@ def montar_fluxo(modelo, indice: IndiceProtocolo):
         },
     )
     grafo.add_edge("alerta", "exames")
-    grafo.add_edge("exames", END)
+
+    if incluir_confirmacao_tratamento:
+        grafo.add_edge("exames", "confirmacao")
+        grafo.add_conditional_edges(
+            "confirmacao",
+            rotear_confirmacao,
+            {
+                "encerrar": END,
+                "tratamento": "tratamento",
+            },
+        )
+        grafo.add_edge("tratamento", END)
+    else:
+        grafo.add_edge("exames", END)
 
     fluxo_compilado = grafo.compile()
-    print("[fluxo] Grafo de triagem montado (M1 classificacao | M2 gravidade+alerta | M3 exames)")
+    if incluir_confirmacao_tratamento:
+        print(
+            "[fluxo] Grafo de triagem montado "
+            "(M1 classificacao | M2 gravidade+alerta | M3 exames | M4 confirmacao+tratamento)"
+        )
+    else:
+        print(
+            "[fluxo] Grafo de triagem montado "
+            "(M1 classificacao | M2 gravidade+alerta | M3 exames)"
+        )
     return fluxo_compilado

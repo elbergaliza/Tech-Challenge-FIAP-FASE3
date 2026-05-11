@@ -16,7 +16,11 @@
 import os
 import re
 import pickle
+import json
+import hashlib
 import unicodedata
+from collections.abc import Sequence
+from dataclasses import asdict
 
 import fitz
 from langchain_core.documents import Document
@@ -265,27 +269,75 @@ def busca_hibrida(
 # ─── Interface pública (compatível com main.py) ──────────────
 
 
-def construir_indice(config: ConfiguracaoProtocolo) -> IndiceProtocolo:
-    """
-    Constrói ou carrega o índice do protocolo.
+def _normalizar_configs(
+    configs: Sequence[ConfiguracaoProtocolo] | ConfiguracaoProtocolo,
+) -> list[ConfiguracaoProtocolo]:
+    if isinstance(configs, ConfiguracaoProtocolo):
+        return [configs]
+    return list(configs)
 
-    Se o cache existe (FAISS + chunks.pkl), carrega direto sem re-parsear o PDF.
-    Caso contrário, parseia o PDF, cria o índice e salva em disco.
+
+def _montar_manifesto(configs: Sequence[ConfiguracaoProtocolo]) -> dict:
+    protocolos = [asdict(c) for c in sorted(configs, key=lambda item: item.nome)]
+    return {
+        "protocolos": protocolos,
+        "modelo_embedding": MODELO_DE_EMBEDDING,
+    }
+
+
+def _chave_cache(manifesto: dict) -> str:
+    manifesto_json = json.dumps(manifesto, sort_keys=True, ensure_ascii=True)
+    digest = hashlib.sha256(manifesto_json.encode("utf-8")).hexdigest()[:12]
+    return f"idx-{digest}"
+
+
+def _salvar_manifesto(caminho_cache: str, manifesto: dict):
+    caminho_manifesto = os.path.join(caminho_cache, "manifest.json")
+    with open(caminho_manifesto, "w", encoding="utf-8") as f:
+        json.dump(manifesto, f, indent=2, ensure_ascii=False)
+
+
+def construir_indice(
+    configs: Sequence[ConfiguracaoProtocolo] | ConfiguracaoProtocolo,
+) -> IndiceProtocolo:
     """
-    caminho_cache = os.path.join(CAMINHO_DO_BANCO_DE_VETORES, config.nome)
+    Constrói ou carrega um índice para 1..N protocolos.
+
+    Se o cache existe (FAISS + chunks.pkl), carrega direto sem re-parsear PDFs.
+    Caso contrário, parseia os PDFs, cria o índice e salva em disco.
+    """
+    lista_configs = _normalizar_configs(configs)
+    if not lista_configs:
+        raise ValueError("A lista de protocolos para indexação não pode ser vazia.")
+
+    manifesto = _montar_manifesto(lista_configs)
+    chave_cache = _chave_cache(manifesto)
+    nomes_protocolos = ", ".join(c.nome for c in lista_configs)
+    caminho_cache = os.path.join(CAMINHO_DO_BANCO_DE_VETORES, chave_cache)
     chunks_cache = os.path.join(caminho_cache, "chunks.pkl")
 
     if os.path.exists(chunks_cache):
         print(
-            f"[banco_de_conhecimento] Cache encontrado para '{config.nome}'. Carregando..."
+            "[banco_de_conhecimento] Cache encontrado para "
+            f"'{nomes_protocolos}' ({chave_cache}). Carregando..."
         )
         return IndiceProtocolo.carregar(caminho_cache)
-    else:
-        print(
-            f"[banco_de_conhecimento] Cache não encontrado para '{config.nome}'. Criando..."
-        )
-        chunks = parsear_protocolo(config)
-        indice = IndiceProtocolo(chunks)
-        indice.salvar(caminho_cache)
-        print(f"[banco_de_conhecimento] Cache salvo em: {caminho_cache}")
-        return indice
+
+    print(
+        "[banco_de_conhecimento] Cache não encontrado para "
+        f"'{nomes_protocolos}' ({chave_cache}). Criando..."
+    )
+    chunks = []
+    for config in lista_configs:
+        chunks.extend(parsear_protocolo(config))
+
+    indice = IndiceProtocolo(chunks)
+    indice.salvar(caminho_cache)
+    _salvar_manifesto(caminho_cache, manifesto)
+    print(f"[banco_de_conhecimento] Cache salvo em: {caminho_cache}")
+    return indice
+
+
+def construir_indice_unico(config: ConfiguracaoProtocolo) -> IndiceProtocolo:
+    """Wrapper de retrocompatibilidade para um único protocolo."""
+    return construir_indice([config])

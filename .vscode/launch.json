@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Main (Triagem)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/langchain/main.py",
+      "cwd": "${workspaceFolder}/langchain",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Testes (unitários)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/", "-v", "-s"],
+      "cwd": "${workspaceFolder}/langchain",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Testes E2E (requer Ollama)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/test_e2e.py", "-v", "-s"],
+      "cwd": "${workspaceFolder}/langchain",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

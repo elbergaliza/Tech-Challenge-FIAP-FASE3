@@ -1,3 +1,15 @@
+# Pastas muito grandes
+data/checkpoints/
+data/processed/
+pre-trained/
+
+# Arquivos de modelo, treino e dados
+*.zip
+*.safetensors
+*.pt
+*.arrow
+*.jsonl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -80,6 +92,10 @@ target/
 
 # Dados: arquivos .parquet (binários volumosos; em geral não versionar)
 *.parquet
+
+# Office / Windows: locks e temporários (~$..., ~WRL....tmp), em qualquer pasta
+~$*.*
+~*.tmp
 
 # IPython
 profile_default/
@@ -208,6 +224,3 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-
-# Git worktrees
-.worktrees/

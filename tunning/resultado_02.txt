@@ -1,0 +1,131 @@
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+🦥 Unsloth Zoo will now patch everything to make training faster!
+==((====))==  Unsloth 2026.4.8: Fast Qwen2 patching. Transformers: 5.5.0.
+   \\   /|    Tesla T4. Num GPUs = 1. Max memory: 14.563 GB. Platform: Linux.
+O^O/ \_/ \    Torch: 2.10.0+cu128. CUDA: 7.5. CUDA Toolkit: 12.8. Triton: 3.6.0
+\        /    Bfloat16 = FALSE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+model.safetensors: 100% 2.36G/2.36G [00:42<00:00, 56.1MB/s]
+Loading weights: 100% 434/434 [00:03<00:00, 141.43it/s]
+generation_config.json: 100% 271/271 [00:00<00:00, 1.68MB/s]
+config.json: 1.42kB [00:00, 4.06MB/s]
+tokenizer_config.json: 7.36kB [00:00, 22.5MB/s]
+vocab.json: 2.78MB [00:00, 61.9MB/s]
+merges.txt: 1.67MB [00:00, 93.8MB/s]
+tokenizer.json: 100% 11.4M/11.4M [00:00<00:00, 54.0MB/s]
+added_tokens.json: 100% 605/605 [00:00<00:00, 2.59MB/s]
+special_tokens_map.json: 100% 614/614 [00:00<00:00, 4.02MB/s]
+unsloth/qwen2.5-3b-instruct-unsloth-bnb-4bit does not have a padding token! Will use pad_token = <|PAD_TOKEN|>.
+Unsloth: Dropout = 0 is supported for fast patching. You are using dropout = 0.05.
+Unsloth will patch all other layers, except LoRA matrices, causing a performance hit.
+Unsloth 2026.4.8 patched 36 layers with 0 QKV layers, 0 O layers and 0 MLP layers.
+Formatando dataset de treino: 100% 512/512 [00:00<00:00, 10158.58 examples/s]
+Formatando dataset de validacao: 100% 128/128 [00:00<00:00, 3583.65 examples/s]
+warmup_ratio is deprecated and will be removed in v5.2. Use `warmup_steps` instead.
+Unsloth: Tokenizing ["text"] (num_proc=6): 100% 512/512 [00:15<00:00, 32.55 examples/s]
+Unsloth: Tokenizing ["text"] (num_proc=6): 100% 128/128 [00:15<00:00,  8.51 examples/s]
+The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None}.
+==((====))==  Unsloth - 2x faster free finetuning | Num GPUs used = 1
+   \\   /|    Num examples = 512 | Num Epochs = 1 | Total steps = 32
+O^O/ \_/ \    Batch size per device = 2 | Gradient accumulation steps = 8
+\        /    Data Parallel GPUs = 1 | Total batch size (2 x 8 x 1) = 16
+ "-____-"     Trainable parameters = 59,867,136 of 3,145,805,824 (1.90% trained)
+  0% 0/32 [00:00<?, ?it/s]`use_return_dict` is deprecated! Use `return_dict` instead!
+Unsloth: Will smartly offload gradients to save VRAM!
+{'loss': '2.149', 'grad_norm': '0.7391', 'learning_rate': '0.0001689', 'epoch': '0.3125'}
+{'loss': '1.375', 'grad_norm': '0.4727', 'learning_rate': '7.493e-05', 'epoch': '0.625'}
+{'loss': '1.369', 'grad_norm': '0.4467', 'learning_rate': '4.586e-06', 'epoch': '0.9375'}
+100% 32/32 [04:10<00:00,  8.06s/it]/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:71: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:281: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:172: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:202: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:254: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+
+  0% 0/64 [00:00<?, ?it/s]/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:71: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:281: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:172: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:202: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+/usr/local/lib/python3.12/dist-packages/transformers/modeling_attn_mask_utils.py:254: FutureWarning: The attention mask API under `transformers.modeling_attn_mask_utils` (`AttentionMaskConverter`) is deprecated and will be removed in Transformers v5.10. Please use the new API in `transformers.masking_utils`.
+  warnings.warn(DEPRECATION_MESSAGE, FutureWarning)
+
+  3% 2/64 [00:00<00:06, 10.28it/s]
+  6% 4/64 [00:00<00:13,  4.46it/s]
+  8% 5/64 [00:01<00:14,  4.09it/s]
+  9% 6/64 [00:01<00:15,  3.76it/s]
+ 11% 7/64 [00:02<00:20,  2.75it/s]
+ 12% 8/64 [00:02<00:22,  2.47it/s]
+ 14% 9/64 [00:03<00:23,  2.31it/s]
+ 16% 10/64 [00:03<00:21,  2.46it/s]
+ 17% 11/64 [00:03<00:19,  2.69it/s]
+ 19% 12/64 [00:03<00:18,  2.82it/s]
+ 20% 13/64 [00:04<00:17,  2.95it/s]
+ 22% 14/64 [00:04<00:16,  3.09it/s]
+ 23% 15/64 [00:04<00:15,  3.11it/s]
+ 25% 16/64 [00:05<00:15,  3.05it/s]
+ 27% 17/64 [00:05<00:16,  2.83it/s]
+ 28% 18/64 [00:05<00:16,  2.82it/s]
+ 30% 19/64 [00:06<00:15,  2.88it/s]
+ 31% 20/64 [00:06<00:14,  3.00it/s]
+ 33% 21/64 [00:06<00:13,  3.14it/s]
+ 34% 22/64 [00:07<00:13,  3.10it/s]
+ 36% 23/64 [00:07<00:14,  2.92it/s]
+ 38% 24/64 [00:08<00:14,  2.78it/s]
+ 39% 25/64 [00:08<00:14,  2.71it/s]
+ 41% 26/64 [00:08<00:14,  2.71it/s]
+ 42% 27/64 [00:09<00:14,  2.63it/s]
+ 44% 28/64 [00:09<00:13,  2.60it/s]
+ 45% 29/64 [00:10<00:13,  2.55it/s]
+ 47% 30/64 [00:10<00:13,  2.46it/s]
+ 48% 31/64 [00:10<00:13,  2.47it/s]
+ 50% 32/64 [00:11<00:12,  2.61it/s]
+ 52% 33/64 [00:11<00:12,  2.55it/s]
+ 53% 34/64 [00:11<00:11,  2.62it/s]
+ 55% 35/64 [00:12<00:10,  2.79it/s]
+ 56% 36/64 [00:12<00:09,  2.94it/s]
+ 58% 37/64 [00:12<00:08,  3.05it/s]
+ 59% 38/64 [00:13<00:08,  3.14it/s]
+ 61% 39/64 [00:13<00:07,  3.22it/s]
+ 62% 40/64 [00:13<00:07,  3.32it/s]
+ 64% 41/64 [00:14<00:06,  3.35it/s]
+ 66% 42/64 [00:14<00:06,  3.41it/s]
+ 67% 43/64 [00:14<00:06,  3.43it/s]
+ 69% 44/64 [00:14<00:05,  3.43it/s]
+ 70% 45/64 [00:15<00:05,  3.33it/s]
+ 72% 46/64 [00:15<00:05,  3.20it/s]
+ 73% 47/64 [00:15<00:05,  3.19it/s]
+ 75% 48/64 [00:16<00:04,  3.30it/s]
+ 77% 49/64 [00:16<00:04,  3.08it/s]
+ 78% 50/64 [00:16<00:04,  2.86it/s]
+ 80% 51/64 [00:17<00:04,  2.87it/s]
+ 81% 52/64 [00:17<00:04,  2.95it/s]
+ 83% 53/64 [00:17<00:03,  3.06it/s]
+ 84% 54/64 [00:18<00:03,  3.00it/s]
+ 86% 55/64 [00:18<00:03,  2.95it/s]
+ 88% 56/64 [00:18<00:02,  3.01it/s]
+ 89% 57/64 [00:19<00:02,  2.84it/s]
+ 91% 58/64 [00:19<00:02,  2.91it/s]
+ 92% 59/64 [00:19<00:01,  3.11it/s]
+ 94% 60/64 [00:20<00:01,  2.94it/s]
+ 95% 61/64 [00:20<00:01,  2.93it/s]
+ 97% 62/64 [00:21<00:00,  2.65it/s]
+ 98% 63/64 [00:21<00:00,  2.63it/s]
+                                   
+{'eval_loss': '1.541', 'eval_runtime': '22.78', 'eval_samples_per_second': '5.619', 'eval_steps_per_second': '2.809', 'epoch': '1'}
+100% 32/32 [04:33<00:00,  8.06s/it]
+100% 64/64 [00:21<00:00,  2.77it/s]
+                                   Unsloth: Restored added_tokens_decoder metadata in data/checkpoints/qwen2.5-3b-medpt-lora/checkpoint-32/tokenizer_config.json.
+{'train_runtime': '277.3', 'train_samples_per_second': '1.846', 'train_steps_per_second': '0.115', 'train_loss': '1.617', 'epoch': '1'}
+100% 32/32 [04:37<00:00,  8.67s/it]
+Unsloth: Restored added_tokens_decoder metadata in pre-trained/qwen2.5-3b-medpt-lora/tokenizer_config.json.
+Checkpoints salvos em: data/checkpoints/qwen2.5-3b-medpt-lora
+Modelo final (adapter) salvo em: pre-trained/qwen2.5-3b-medpt-lora

@@ -25,8 +25,9 @@ CONFIG_COVID = ConfiguracaoProtocolo(
         "sintomas": [4, 9, 14],
         "classificacao": [10, 12, 13],
         "sinais_alarme": [12, 13, 14],
+        # p.4: hemograma, linfopenia, infiltrado bilateral (texto diagnóstico geral)
         # p.5-6: PCR e teste rápido sorológico; p.12,14: oximetria de pulso (SpO2)
-        "exames": [5, 6, 12, 14],
+        "exames": [4, 5, 6, 12, 14],
         "tratamento": [18, 19, 20, 21, 22],
     },
     niveis_gravidade=["leve", "moderado", "grave", "critico"],

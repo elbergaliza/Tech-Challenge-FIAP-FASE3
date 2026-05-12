@@ -102,7 +102,18 @@ def criar_no_classificacao(indice: IndiceProtocolo, modelo):
             for d in suspeitas_raw
         )
 
-
+        # Filtra fontes: mantém apenas fontes cujo texto contém o nome de uma doença suspeita
+        # Evita que fontes de dengue apareçam em resultados de COVID e vice-versa
+        fontes_raw = resultado.get("fontes", [])
+        if doencas:
+            termos = [d.lower().replace("-", "").replace(" ", "") for d in doencas]
+            fontes_filtradas = [
+                f for f in fontes_raw
+                if any(t in f.lower().replace("-", "").replace(" ", "") for t in termos)
+            ]
+            fontes_finais = fontes_filtradas if fontes_filtradas else fontes_raw
+        else:
+            fontes_finais = fontes_raw
 
         return {
             **estado,
@@ -111,7 +122,7 @@ def criar_no_classificacao(indice: IndiceProtocolo, modelo):
             "gravidade": gravidade,
             "scores": scores,
             "justificativa_classificacao": justificativa,
-            "fontes": resultado.get("fontes", []),
+            "fontes": fontes_finais,
         }
 
     return no_classificacao

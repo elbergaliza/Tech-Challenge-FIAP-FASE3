@@ -90,7 +90,7 @@ def _exibir_resultado_triagem(resultado: dict):
         print(f"\nEXAMES SUGERIDOS:\n")
         for doenca, lista in exames.items():
             if not lista:
-                print(f"  {doenca.upper()}: nenhum exame identificado no protocolo")
+                print(f"  {doenca.upper()}: protocolo de referência não especifica exames laboratoriais — encaminhar para avaliação especializada")
                 continue
             print(f"  {doenca.upper()}:")
             for exame in lista:

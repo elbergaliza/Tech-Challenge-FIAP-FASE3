@@ -124,6 +124,9 @@ def parsear_protocolo(config: ConfiguracaoProtocolo) -> list[Document]:
 
             pagina = doc.metadata["pagina"]
             secoes = _classificar_secao_por_pagina(pagina, config.paginas_por_secao)
+            if secoes == ["geral"]:
+                continue
+
             gravidade = _detectar_gravidade(texto_chunk, config.niveis_gravidade)
 
             chunks.append(
@@ -224,7 +227,7 @@ def busca_hibrida(
     """
 
     # FAISS (semântico)
-    docs_faiss = indice.buscador_faiss.invoke(consulta)
+    docs_faiss = indice.vector_store.similarity_search(consulta, k=k)
 
     # BM25 (keyword)
     tokens = normalizar(consulta).split()
@@ -234,24 +237,21 @@ def busca_hibrida(
     )[:k]
     docs_bm25 = [indice.chunks[i] for i in top_bm25]
 
-    # Fusão RRF (Reciprocal Rank Fusion)
+    # Fusão RRF
     peso_faiss = 1 - PESO_BM25
-    mapa_scores = {}
-    todos_docs = {}
+    mapa_scores: dict = {}
+    todos_docs: dict = {}
 
-    for posicao, doc in enumerate(docs_bm25):
+    for pos, doc in enumerate(docs_bm25):
         chave = doc.page_content[:200]
-        mapa_scores[chave] = mapa_scores.get(chave, 0) + PESO_BM25 * (1 / (posicao + 1))
+        mapa_scores[chave] = mapa_scores.get(chave, 0) + PESO_BM25 * (1 / (pos + 1))
         todos_docs[chave] = doc
 
-    for posicao, doc in enumerate(docs_faiss):
+    for pos, doc in enumerate(docs_faiss):
         chave = doc.page_content[:200]
-        mapa_scores[chave] = mapa_scores.get(chave, 0) + peso_faiss * (
-            1 / (posicao + 1)
-        )
+        mapa_scores[chave] = mapa_scores.get(chave, 0) + peso_faiss * (1 / (pos + 1))
         todos_docs[chave] = doc
 
-    # Ordena por score e coleta
     ranking = sorted(mapa_scores.items(), key=lambda x: x[1], reverse=True)
     resultados = [todos_docs[chave] for chave, _ in ranking]
 
@@ -259,9 +259,7 @@ def busca_hibrida(
     if doenca:
         resultados = [d for d in resultados if d.metadata.get("doenca") == doenca]
     if secao_tipo:
-        resultados = [
-            d for d in resultados if secao_tipo in d.metadata.get("secao_tipo", [])
-        ]
+        resultados = [d for d in resultados if secao_tipo in d.metadata.get("secao_tipo", [])]
 
     return resultados[:k]
 

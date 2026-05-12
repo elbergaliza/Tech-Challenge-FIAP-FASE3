@@ -2,7 +2,7 @@
   "protocolos": [
     {
       "nome": "covid",
-      "caminho_pdf": "./dados/data/20200504-protocolomanejo-ver09.pdf",
+      "caminho_pdf": "/home/thallesf/Documentos/study/Tech-Challenge-FIAP-FASE3/langchain/dados/data/20200504-protocolomanejo-ver09.pdf",
       "descricao_fonte": "Ministerio da Saude - Protocolo de Manejo Clinico do Coronavirus (COVID-19) na APS (v9)",
       "url_fonte": "https://www.gov.br/saude/pt-br/coronavirus/publicacoes-tecnicas/guias-e-planos/protocolo-de-manejo-clinico-do-coronavirus-covid-19-na-atencao-primaria-a-saude",
       "padroes_cabecalho": [
@@ -20,27 +20,25 @@
       ],
       "paginas_por_secao": {
         "sintomas": [
-          5,
-          6,
-          7,
-          8,
+          4,
           9,
-          10
+          14
         ],
         "classificacao": [
           10,
-          11,
           12,
           13
         ],
         "sinais_alarme": [
-          11,
           12,
-          13
+          13,
+          14
         ],
         "exames": [
-          4,
-          5
+          5,
+          6,
+          12,
+          14
         ],
         "tratamento": [
           18,
@@ -61,7 +59,7 @@
     },
     {
       "nome": "dengue",
-      "caminho_pdf": "./dados/data/dengue-diagnostico-e-manejo-clinico-adulto-e-crianca.pdf",
+      "caminho_pdf": "/home/thallesf/Documentos/study/Tech-Challenge-FIAP-FASE3/langchain/dados/data/dengue-diagnostico-e-manejo-clinico-adulto-e-crianca.pdf",
       "descricao_fonte": "Ministério da Saúde - Protocolo de Manejo Clínico da Dengue (2024)",
       "url_fonte": "https://www.gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/svsa/dengue/dengue-diagnostico-e-manejo-clinico-adulto-e-crianca",
       "padroes_cabecalho": [
@@ -84,8 +82,12 @@
       ],
       "paginas_por_secao": {
         "sintomas": [
-          11,
-          12
+          13,
+          14,
+          22,
+          24,
+          28,
+          56
         ],
         "classificacao": [
           12,
@@ -94,7 +96,8 @@
           28
         ],
         "sinais_alarme": [
-          12,
+          14,
+          28,
           32
         ],
         "exames": [

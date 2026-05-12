@@ -8,9 +8,17 @@ import json
 import re
 from pathlib import Path
 from banco_de_conhecimento import IndiceProtocolo, busca_hibrida
+from nos.debug import salvar_prompt
 
 
 CAMINHO_PROMPT = Path(__file__).parent.parent / "prompts" / "classificacao.txt"
+
+# Limite de chars do contexto para não estourar o context window do modelo
+# Prompt fixo tem ~1400 chars; reservamos ~2000 para resposta → ~4000 de contexto seguro
+_MAX_CHARS_CONTEXTO = 4000
+
+# k conservador — após filtro por secao_tipo o número real de chunks é menor
+_K_CLASSIFICACAO = 6
 
 
 def criar_no_classificacao(indice: IndiceProtocolo, modelo):
@@ -30,8 +38,8 @@ def criar_no_classificacao(indice: IndiceProtocolo, modelo):
         print("[classificacao] Classificando sintomas...")
         sintomas = estado["sintomas"]
 
-        # Busca sem filtro (classificação busca em tudo)
-        docs = busca_hibrida(indice, sintomas)
+        # Busca filtrada por seção de sintomas para evitar chunks de formulários e anexos
+        docs = busca_hibrida(indice, sintomas, k=_K_CLASSIFICACAO, secao_tipo="sintomas")
         docs_resumidos = [
             {
                 "texto": d.page_content,
@@ -47,6 +55,10 @@ def criar_no_classificacao(indice: IndiceProtocolo, modelo):
             f"[{d['fonte']}, p.{d['pagina']}]\n{d['texto']}" for d in docs_resumidos
         )
 
+        # Trunca contexto para não estourar o context window
+        if len(contexto) > _MAX_CHARS_CONTEXTO:
+            contexto = contexto[:_MAX_CHARS_CONTEXTO] + "\n[...contexto truncado...]"
+
         # Extrai fontes únicas para o prompt
         fontes_unicas = {
             (d["fonte"], d["url_fonte"]) for d in docs_resumidos if d["fonte"]
@@ -61,6 +73,9 @@ def criar_no_classificacao(indice: IndiceProtocolo, modelo):
             nome_fonte=nome_fonte,
             url_fonte=url_fonte,
         )
+
+        salvar_prompt("classificacao", prompt, f"{len(docs)} chunks, {len(contexto)} chars de contexto")
+
         resposta = modelo.invoke(prompt)
         conteudo = resposta.content if hasattr(resposta, "content") else str(resposta)
 
@@ -74,24 +89,27 @@ def criar_no_classificacao(indice: IndiceProtocolo, modelo):
             else:
                 resultado = {"doencas_suspeitas": [], "fontes": []}
 
+        # Ordena por score decrescente (campo novo; fallback 50 se ausente)
+        suspeitas_raw = resultado.get("doencas_suspeitas", [])
+        suspeitas_raw.sort(key=lambda d: d.get("score", 50), reverse=True)
+
         # Atualiza estado
-        doencas = [d["doenca"] for d in resultado.get("doencas_suspeitas", [])]
-        gravidade = {
-            d["doenca"]: d["gravidade"] for d in resultado.get("doencas_suspeitas", [])
-        }
+        doencas = [d["doenca"] for d in suspeitas_raw]
+        gravidade = {d["doenca"]: d["gravidade"] for d in suspeitas_raw}
+        scores = {d["doenca"]: d.get("score", 50) for d in suspeitas_raw}
         justificativa = "\n".join(
-            f"- {d['doenca']}: {d.get('justificativa', '')}"
-            for d in resultado.get("doencas_suspeitas", [])
+            f"- {d['doenca']} (score {d.get('score', '?')}/100): {d.get('justificativa', '')}"
+            for d in suspeitas_raw
         )
 
-        print(f"[classificacao] Doenças suspeitas: {doencas}")
-        print(f"[classificacao] Gravidade: {gravidade}")
+
 
         return {
             **estado,
             "documentos_recuperados": docs_resumidos,
             "doencas_suspeitas": doencas,
             "gravidade": gravidade,
+            "scores": scores,
             "justificativa_classificacao": justificativa,
             "fontes": resultado.get("fontes", []),
         }

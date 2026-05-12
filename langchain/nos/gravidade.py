@@ -109,7 +109,6 @@ def criar_no_gravidade():
 
     def no_gravidade(estado: dict) -> dict:
         print("[gravidade] Avaliando gravidade das suspeitas...")
-
         gravidade_raw: dict[str, str] = estado.get("gravidade", {})
 
         doencas_graves: list[str] = []
@@ -133,8 +132,6 @@ def criar_no_gravidade():
                 "Acionar equipe medica imediatamente. "
                 "Baseado em protocolo oficial — validacao clinica obrigatoria."
             )
-
-        print(f"[gravidade] max_gravidade={max_gravidade} | graves={doencas_graves}")
 
         return {
             **estado,

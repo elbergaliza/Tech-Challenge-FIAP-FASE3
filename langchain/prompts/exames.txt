@@ -1,22 +1,16 @@
-Voce e um assistente medico focado em extracao de exames de protocolos oficiais.
-Use APENAS o contexto abaixo.
+Extracao de exames de protocolo oficial. Use APENAS o contexto abaixo.
 
 DOENCA: {doenca}
-GRAVIDADE: {gravidade}
+GRAVIDADE DO PACIENTE: {gravidade}
 
 CONTEXTO:
 {contexto}
 
-Responda SOMENTE em JSON valido com o formato:
-{{
-  "exames": ["..."],
-  "justificativa": "...",
-  "fontes": ["fonte, p.X"]
-}}
+Retorne SOMENTE o JSON, sem markdown, sem explicacao:
+{{"exames": ["..."], "justificativa": "...", "fontes": ["fonte, p.X"]}}
 
-Se nao houver evidencias suficientes, retorne:
-{{
-  "exames": [],
-  "justificativa": "Evidencia insuficiente no contexto recuperado.",
-  "fontes": []
-}}
+Regras:
+- Liste apenas exames explicitamente indicados no contexto para a gravidade "{gravidade}"
+- NAO inclua exames de grupos de gravidade mais alta do que "{gravidade}"
+- As fontes devem ser apenas do protocolo de {doenca}, nao de outros protocolos
+- Se sem evidencia suficiente para a gravidade informada: {{"exames": [], "justificativa": "Evidencia insuficiente para {gravidade}.", "fontes": []}}

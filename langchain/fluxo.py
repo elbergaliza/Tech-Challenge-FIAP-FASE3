@@ -49,6 +49,7 @@ class EstadoTriagem(TypedDict, total=False):
     documentos_recuperados: list[dict]
     doencas_suspeitas: list[str]
     gravidade: dict[str, str]       # {"dengue": "grupo_c"}
+    scores: dict[str, int]          # {"dengue": 85, "covid": 40}
     justificativa_classificacao: str
     fontes: list[str]
 

@@ -6,13 +6,14 @@ CONTEXTO:
 SINTOMAS DO PACIENTE: {sintomas}
 
 Retorne SOMENTE o JSON abaixo, sem markdown, sem explicação:
-{{"doencas_suspeitas": [{{"doenca": "nome", "gravidade": "Grave ou Nao grave", "justificativa": "...", "score": 0}}], "fontes": ["fonte, p.X"]}}
+{{"doencas_suspeitas": [{{"doenca": "nome", "gravidade": "Grave ou Nao grave", "sintomas_compativeis": ["sintoma1"], "total_sintomas_protocolo": 0, "justificativa": "..."}}], "fontes": ["fonte, p.X"]}}
 
 Regras:
 - Doenças válidas: dengue, covid
 - O campo gravidade deve ser exatamente "Grave" ou "Nao grave"
-- Inclua uma doença APENAS se os sintomas do paciente baterem diretamente com os critérios do protocolo
-- Score 0-100: quantos dos sintomas do paciente correspondem aos critérios (0-19=não incluir, 20-49=baixa, 50-79=moderada, 80-100=alta)
+- Inclua uma doença APENAS se sintomas_compativeis não for vazio
+- sintomas_compativeis: liste APENAS os sintomas que o paciente relatou E que estão listados no protocolo para a doença — não invente sintomas não relatados
+- total_sintomas_protocolo: número total de sintomas diagnósticos da doença listados no contexto
 - A justificativa deve citar APENAS os sintomas que o paciente relatou, não copiar o protocolo inteiro
-- Ordene por score decrescente
+- Ordene por número de sintomas_compativeis decrescente
 - Se sem evidência, retorne doencas_suspeitas vazio

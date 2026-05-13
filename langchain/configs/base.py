@@ -23,3 +23,7 @@ class ConfiguracaoProtocolo:
     # Chunking
     tamanho_chunk: int = 800
     sobreposicao_chunk: int = 200
+
+    # Template de query para busca de exames — use {gravidade} como placeholder
+    # Deve usar o vocabulário real do PDF para maximizar o score BM25
+    query_exames: str = "exames complementares {gravidade}"

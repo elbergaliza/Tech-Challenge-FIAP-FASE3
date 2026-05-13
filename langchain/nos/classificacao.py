@@ -89,16 +89,32 @@ def criar_no_classificacao(indice: IndiceProtocolo, modelo):
             else:
                 resultado = {"doencas_suspeitas": [], "fontes": []}
 
-        # Ordena por score decrescente (campo novo; fallback 50 se ausente)
+        # Ordena por número de sintomas compatíveis decrescente (determinístico)
         suspeitas_raw = resultado.get("doencas_suspeitas", [])
-        suspeitas_raw.sort(key=lambda d: d.get("score", 50), reverse=True)
+        suspeitas_raw.sort(
+            key=lambda d: len(d.get("sintomas_compativeis", [])), reverse=True
+        )
+
+        # Filtra doenças sem nenhum sintoma compatível
+        suspeitas_raw = [
+            d for d in suspeitas_raw if d.get("sintomas_compativeis")
+        ]
 
         # Atualiza estado
         doencas = [d["doenca"] for d in suspeitas_raw]
         gravidade = {d["doenca"]: d["gravidade"] for d in suspeitas_raw}
-        scores = {d["doenca"]: d.get("score", 50) for d in suspeitas_raw}
+        sintomas_compativeis = {
+            d["doenca"]: d.get("sintomas_compativeis", []) for d in suspeitas_raw
+        }
+        total_sintomas_protocolo = {
+            d["doenca"]: d.get("total_sintomas_protocolo", 0) for d in suspeitas_raw
+        }
+        # Mantém scores como len(sintomas_compativeis) para compatibilidade com main.py
+        scores = {d: len(sintomas_compativeis[d]) for d in doencas}
         justificativa = "\n".join(
-            f"- {d['doenca']} (score {d.get('score', '?')}/100): {d.get('justificativa', '')}"
+            f"- {d['doenca']} ({len(d.get('sintomas_compativeis', []))} de "
+            f"{d.get('total_sintomas_protocolo', '?')} sintomas compatíveis"
+            f" — {', '.join(d.get('sintomas_compativeis', []))}): {d.get('justificativa', '')}"
             for d in suspeitas_raw
         )
 
@@ -121,6 +137,8 @@ def criar_no_classificacao(indice: IndiceProtocolo, modelo):
             "doencas_suspeitas": doencas,
             "gravidade": gravidade,
             "scores": scores,
+            "sintomas_compativeis": sintomas_compativeis,
+            "total_sintomas_protocolo": total_sintomas_protocolo,
             "justificativa_classificacao": justificativa,
             "fontes": fontes_finais,
         }

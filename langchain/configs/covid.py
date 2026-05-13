@@ -25,10 +25,13 @@ CONFIG_COVID = ConfiguracaoProtocolo(
         "sintomas": [4, 9, 14],
         "classificacao": [10, 12, 13],
         "sinais_alarme": [12, 13, 14],
-        # p.4: hemograma, linfopenia, infiltrado bilateral (texto diagnóstico geral)
-        # p.5-6: PCR e teste rápido sorológico; p.12,14: oximetria de pulso (SpO2)
-        "exames": [4, 5, 6, 12, 14],
+        # p.5: RT-PCR (padrão ouro), teste rápido sorológico, IgG/IgM, ELISA
+        # p.6: limitações dos testes rápidos, manejo por gravidade
+        # p.4, 12, 14 removidos — conteúdo é introdução/sinais de gravidade, não indicação de exames
+        "exames": [5, 6],
         "tratamento": [18, 19, 20, 21, 22],
     },
     niveis_gravidade=["leve", "moderado", "grave", "critico"],
+    # Protocolo COVID usa "diagnóstico laboratorial" — não organiza exames por gravidade
+    query_exames="diagnóstico laboratorial {gravidade}",
 )

@@ -34,7 +34,7 @@ class TestNoClassificacao:
     def test_classificacao_dengue_grave(self, indice):
         """Deve classificar corretamente dengue grupo C."""
         modelo = _criar_modelo_mock(
-            '{"doencas_suspeitas": [{"doenca": "dengue", "gravidade": "grupo_c", "justificativa": "sinais de alarme presentes"}], "fontes": ["p.12"]}'
+            '{"doencas_suspeitas": [{"doenca": "dengue", "gravidade": "grupo_c", "sintomas_compativeis": ["febre alta", "dor abdominal intensa", "vômitos persistentes"], "total_sintomas_protocolo": 8, "justificativa": "sinais de alarme presentes"}], "fontes": ["p.12"]}'
         )
         fluxo = montar_fluxo(modelo, indice)
 
@@ -45,11 +45,16 @@ class TestNoClassificacao:
         assert "dengue" in resultado["doencas_suspeitas"]
         assert resultado["gravidade"]["dengue"] == "grupo_c"
         assert len(resultado["fontes"]) > 0
+        assert "sintomas_compativeis" in resultado
+        assert "dengue" in resultado["sintomas_compativeis"]
+        assert len(resultado["sintomas_compativeis"]["dengue"]) > 0
+        assert "total_sintomas_protocolo" in resultado
+        assert resultado["total_sintomas_protocolo"]["dengue"] == 8
 
     def test_classificacao_dengue_leve(self, indice):
         """Deve classificar corretamente dengue grupo A."""
         modelo = _criar_modelo_mock(
-            '{"doencas_suspeitas": [{"doenca": "dengue", "gravidade": "grupo_a", "justificativa": "sem sinais de alarme"}], "fontes": ["p.28"]}'
+            '{"doencas_suspeitas": [{"doenca": "dengue", "gravidade": "grupo_a", "sintomas_compativeis": ["febre"], "total_sintomas_protocolo": 8, "justificativa": "sem sinais de alarme"}], "fontes": ["p.28"]}'
         )
         fluxo = montar_fluxo(modelo, indice)
 
@@ -63,7 +68,7 @@ class TestNoClassificacao:
     def test_classificacao_covid_grave(self, indice):
         """Deve classificar corretamente COVID grave."""
         modelo = _criar_modelo_mock(
-            '{"doencas_suspeitas": [{"doenca": "covid", "gravidade": "grave", "justificativa": "dispneia e dessaturacao"}], "fontes": ["p.5"]}'
+            '{"doencas_suspeitas": [{"doenca": "covid", "gravidade": "grave", "sintomas_compativeis": ["tosse", "febre", "dispneia"], "total_sintomas_protocolo": 6, "justificativa": "dispneia e dessaturacao"}], "fontes": ["p.5"]}'
         )
         fluxo = montar_fluxo(modelo, indice)
 
@@ -78,8 +83,8 @@ class TestNoClassificacao:
         """Deve manter suspeitas múltiplas no mesmo estado."""
         modelo = _criar_modelo_mock(
             '{"doencas_suspeitas": ['
-            '{"doenca": "dengue", "gravidade": "grupo_b", "justificativa": "febre e mialgia"}, '
-            '{"doenca": "covid", "gravidade": "moderado", "justificativa": "tosse e odinofagia"}'
+            '{"doenca": "dengue", "gravidade": "grupo_b", "sintomas_compativeis": ["febre", "mialgia"], "total_sintomas_protocolo": 8, "justificativa": "febre e mialgia"}, '
+            '{"doenca": "covid", "gravidade": "moderado", "sintomas_compativeis": ["tosse"], "total_sintomas_protocolo": 6, "justificativa": "tosse e odinofagia"}'
             '], "fontes": ["p.12", "p.5"]}'
         )
         fluxo = montar_fluxo(modelo, indice)
@@ -117,7 +122,7 @@ class TestNoClassificacao:
     def test_estado_contem_documentos_recuperados(self, indice):
         """Estado deve conter os documentos usados na classificação."""
         modelo = _criar_modelo_mock(
-            '{"doencas_suspeitas": [{"doenca": "dengue", "gravidade": "grupo_b", "justificativa": "risco"}], "fontes": ["p.31"]}'
+            '{"doencas_suspeitas": [{"doenca": "dengue", "gravidade": "grupo_b", "sintomas_compativeis": ["febre", "dor no corpo"], "total_sintomas_protocolo": 8, "justificativa": "risco"}], "fontes": ["p.31"]}'
         )
         fluxo = montar_fluxo(modelo, indice)
 
@@ -130,3 +135,28 @@ class TestNoClassificacao:
         assert "texto" in doc
         assert "pagina" in doc
         assert "fonte" in doc
+
+    def test_doenca_excluida_sem_sintomas_compativeis(self, indice):
+        """Deve excluir doença quando sintomas_compativeis é lista vazia."""
+        modelo = _criar_modelo_mock(
+            '{"doencas_suspeitas": [{"doenca": "dengue", "gravidade": "Nao grave", '
+            '"sintomas_compativeis": [], "total_sintomas_protocolo": 8, '
+            '"justificativa": "nenhum sintoma bateu"}], "fontes": []}'
+        )
+        fluxo = montar_fluxo(modelo, indice)
+        resultado = fluxo.invoke({"sintomas": "dor no dedo mindinho"})
+        assert resultado["doencas_suspeitas"] == []
+
+    def test_ordenacao_por_sintomas_compativeis(self, indice):
+        """Deve ordenar suspeitas por número de sintomas compatíveis decrescente."""
+        modelo = _criar_modelo_mock(
+            '{"doencas_suspeitas": ['
+            '{"doenca": "covid", "gravidade": "Nao grave", "sintomas_compativeis": ["tosse"], "total_sintomas_protocolo": 6, "justificativa": "tosse presente"}, '
+            '{"doenca": "dengue", "gravidade": "Nao grave", "sintomas_compativeis": ["febre", "vômito", "mialgia"], "total_sintomas_protocolo": 8, "justificativa": "mais sintomas"}'
+            '], "fontes": []}'
+        )
+        fluxo = montar_fluxo(modelo, indice)
+        resultado = fluxo.invoke({"sintomas": "febre, vômito, mialgia, tosse"})
+        # dengue tem 3 sintomas compatíveis, covid tem 1 → dengue deve vir primeiro
+        assert resultado["doencas_suspeitas"][0] == "dengue"
+        assert resultado["doencas_suspeitas"][1] == "covid"

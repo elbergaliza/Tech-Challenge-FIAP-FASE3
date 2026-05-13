@@ -22,6 +22,7 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, END
 
 from banco_de_conhecimento import IndiceProtocolo
+from configs.base import ConfiguracaoProtocolo
 from nos.classificacao import criar_no_classificacao
 from nos.gravidade import criar_no_gravidade, rotear_gravidade
 from nos.alerta import criar_no_alerta
@@ -50,6 +51,8 @@ class EstadoTriagem(TypedDict, total=False):
     doencas_suspeitas: list[str]
     gravidade: dict[str, str]       # {"dengue": "grupo_c"}
     scores: dict[str, int]          # {"dengue": 85, "covid": 40}
+    sintomas_compativeis: dict[str, list[str]]  # doenca -> lista de sintomas compatíveis
+    total_sintomas_protocolo: dict[str, int]    # doenca -> total de sintomas do protocolo
     justificativa_classificacao: str
     fontes: list[str]
 
@@ -87,6 +90,7 @@ def montar_fluxo(
     modelo,
     indice: IndiceProtocolo,
     incluir_confirmacao_tratamento: bool = True,
+    configs: list[ConfiguracaoProtocolo] | None = None,
 ):
     """
     Monta e compila o fluxo LangGraph.
@@ -95,6 +99,7 @@ def montar_fluxo(
       modelo - LLM carregado (ChatOpenAI / Ollama)
       indice - IndiceProtocolo com busca híbrida
       incluir_confirmacao_tratamento - se False, encerra apos exames
+      configs - lista de ConfiguracaoProtocolo para customizar queries por doença
 
     Retorna: grafo compilado pronto para invoke()
     """
@@ -102,7 +107,7 @@ def montar_fluxo(
     no_classificacao = criar_no_classificacao(indice, modelo)
     no_gravidade = criar_no_gravidade()
     no_alerta = criar_no_alerta()
-    no_exames = criar_no_exames(indice, modelo)
+    no_exames = criar_no_exames(indice, modelo, configs=configs)
     if incluir_confirmacao_tratamento:
         no_confirmacao = criar_no_confirmacao()
         no_tratamento = criar_no_tratamento(indice, modelo)

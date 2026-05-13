@@ -26,20 +26,14 @@ def _barra(char="─"):
     return char * W
 
 
-def _score_bar(score: int) -> str:
-    """Barra visual de 10 posições proporcional ao score."""
-    preenchido = round(score / 10)
-    return f"[{'█' * preenchido}{'░' * (10 - preenchido)}] {score}/100"
-
-
-def _label_score(score: int) -> str:
-    if score >= 80:
-        return "Alta probabilidade"
-    if score >= 50:
-        return "Probabilidade moderada"
-    if score >= 20:
-        return "Baixa probabilidade"
-    return "Probabilidade muito baixa"
+def _score_bar(n: int, total: int) -> str:
+    """Barra visual de 10 posições: n sintomas compatíveis de total.
+    Se total <= 0, exibe apenas a contagem sem barra (sem divisão por zero).
+    """
+    if total <= 0:
+        return f"{n} sintoma(s) compatível(is)"
+    preenchido = round((n / total) * 10)
+    return f"[{'█' * preenchido}{'░' * (10 - preenchido)}] {n} de {total}"
 
 
 def _exibir_resultado_triagem(resultado: dict):
@@ -51,6 +45,8 @@ def _exibir_resultado_triagem(resultado: dict):
     alerta = resultado.get("alerta")
     exames = resultado.get("exames_sugeridos", {})
     fontes_exames = resultado.get("fontes_exames", {})
+    sintomas_compativeis = resultado.get("sintomas_compativeis", {})
+    total_sintomas_protocolo = resultado.get("total_sintomas_protocolo", {})
 
     print("\n" + _barra("═"))
     print("  RESULTADO DA TRIAGEM")
@@ -66,11 +62,14 @@ def _exibir_resultado_triagem(resultado: dict):
     else:
         print("\nSUSPEITAS DIAGNOSTICAS (ordenadas por probabilidade):\n")
         for i, doenca in enumerate(doencas, 1):
-            score = scores.get(doenca, 50)
+            n = len(sintomas_compativeis.get(doenca, []))
+            total = total_sintomas_protocolo.get(doenca, 0)
+            lista = ", ".join(sintomas_compativeis.get(doenca, []))
             grav = gravidade.get(doenca, "—")
             print(f"  {i}. {doenca.upper()}")
-            print(f"     Probabilidade : {_score_bar(score)}")
-            print(f"     Interpretacao : {_label_score(score)}")
+            print(f"     Sintomas      : {_score_bar(n, total)}")
+            if lista:
+                print(f"                   ({lista})")
             print(f"     Gravidade     : {grav}")
 
     # ── Justificativa ─────────────────────────────────────────
@@ -183,7 +182,7 @@ def main():
     indice = construir_indice([CONFIG_DENGUE, CONFIG_COVID])
 
     print("\n[3/3] Montando o fluxo de triagem...")
-    fluxo = montar_fluxo(modelo, indice, incluir_confirmacao_tratamento=False)
+    fluxo = montar_fluxo(modelo, indice, incluir_confirmacao_tratamento=False, configs=[CONFIG_DENGUE, CONFIG_COVID])
     no_confirmacao = criar_no_confirmacao()
     no_tratamento = criar_no_tratamento(indice, modelo)
 

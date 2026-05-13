@@ -34,4 +34,6 @@ CONFIG_DENGUE = ConfiguracaoProtocolo(
         "tratamento": [28, 29, 30, 31, 33, 36, 77],
     },
     niveis_gravidade=["grupo_a", "grupo_b", "grupo_c", "grupo_d"],
+    # Protocolo Dengue usa "exames complementares" e organiza por grupo de gravidade
+    query_exames="exames complementares {gravidade}",
 )

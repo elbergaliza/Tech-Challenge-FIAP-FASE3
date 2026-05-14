@@ -165,6 +165,26 @@ Relatórios padrão em `data/evaluation/qwen2.5-3b-medpt-lora/` (`evaluation_sum
 
 ---
 
+## Triagem LangChain (`langchain/`) e artefatos do treino
+
+O assistente de triagem em [langchain/main.py](langchain/main.py) carrega o LLM via [langchain/carregador_do_modelo.py](langchain/carregador_do_modelo.py). Para usar o **adapter LoRA** produzido pelo [tunning/02_finetune_lora.py](tunning/02_finetune_lora.py):
+
+1. **Copiar do Colab (ou da máquina onde treinou)** para a **raiz deste repositório** a pasta `pre-trained/qwen2.5-3b-medpt-lora/` (mínimo: `adapter_config.json`, pesos do adapter, tokenizer e, se existir, `training_metadata.json`).
+2. **Checkpoint intermediário (opcional):** copiar `data/checkpoints/<saida-do-trainer>/checkpoint-NNNN/` e definir no `.env` a variável `LORA_CHECKPOINT_DIR`, **ou** preencher `CAMINHO_CHECKPOINT_LORA` em [langchain/configuracoes.py](langchain/configuracoes.py). A pasta deve conter `adapter_config.json`.
+3. Na raiz do repositório, crie um arquivo `.env` a partir de [.env.example](.env.example). O [`.vscode/launch.json`](.vscode/launch.json) já usa `envFile` apontando para esse arquivo.
+4. Variáveis úteis: `LORA_ADAPTER_PATH`, `LORA_CHECKPOINT_DIR`, `LORA_BASE_MODEL` (opcional se existir `base_model_name` em `training_metadata.json`), `LLM_SYSTEM_MESSAGE`, `LORA_AUTO_DISCOVER`, `LOCAL_MODEL_PATH`, `HF_PIPELINE_MODEL`, `OLLAMA_*`.
+5. Dependências para inferência local com LoRA: `peft`, `transformers`, `torch`; em GPU, `bitsandbytes` (como no Colab). Use `pip install -r requirements.txt` na raiz do repositório.
+6. O RAG dos protocolos ([langchain/banco_de_conhecimento.py](langchain/banco_de_conhecimento.py)) usa PDFs em `langchain/dados/` e o modelo de embedding em `configuracoes.py`; **não** depende de `data/processed/` nem de `data/evaluation/` do tuning.
+
+Execução típica (com `cwd` em `langchain/`, como no launch do VS Code):
+
+```bash
+cd langchain
+python main.py
+```
+
+---
+
 ## Estrutura de arquivos
 
 ```
@@ -205,23 +225,11 @@ python main.py
 
 ---
 
-## Como trocar o modelo quando o time de fine-tuning entregar
+## Como apontar o modelo de linguagem (LoRA, Hub ou Ollama)
 
-Abra o arquivo `configuracoes.py` e mude apenas essa linha:
+Use [langchain/configuracoes.py](langchain/configuracoes.py) (`CAMINHO_DO_MODELO`, `CAMINHO_DO_ADAPTER_LORA`, `CAMINHO_CHECKPOINT_LORA`, `MENSAGEM_SISTEMA_LLM`) e o arquivo `.env` na raiz (veja [.env.example](.env.example) e a secção **Triagem LangChain** acima). O carregador lê `training_metadata.json` junto ao adapter para preencher **modelo base** e **mensagem de sistema** quando `LORA_BASE_MODEL` e `LLM_SYSTEM_MESSAGE` não estão definidos no ambiente.
 
-```python
-# Antes:
-CAMINHO_DO_MODELO = "nlpie/tiny-biobert"
-
-# Depois (exemplo):
-CAMINHO_DO_MODELO = "./modelo_finetuned"
-```
-
-Apague o banco de vetores antigo para recriar com o novo modelo:
-```bash
-rm -rf ./dados/banco_de_vetores
-python main.py
-```
+**Não** apague `langchain/dados/banco_de_vetores` apenas por trocar o LLM de geração: esse índice cobre os protocolos em PDF e é independente do fine-tuning. Recrie o banco só se alterar o modelo de **embedding** em `configuracoes.py` ou os PDFs indexados.
 
 ---
 

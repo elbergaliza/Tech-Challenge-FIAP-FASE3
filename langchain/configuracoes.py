@@ -13,9 +13,27 @@ BASE_DIR = Path(__file__).resolve().parent
 DADOS_DIR = BASE_DIR / "dados"
 LOGS_DIR = BASE_DIR / "logs"
 
-# Caminho do modelo fine-tunado que o time vai entregar
-# Enquanto o modelo não chega, usamos esse modelo público como substituto
-CAMINHO_DO_MODELO = "google/flan-t5-small"
+# Modelo base causal (mesmo ID usado em tunning/02 e 03) — usado com adapter LoRA
+# e como fallback do pipeline quando não há LOCAL_MODEL_PATH nem adapter detectado.
+# Sem GPU, prefira Ollama ou defina HF_PIPELINE_MODEL=gpt2 (ou outro modelo leve) no .env.
+CAMINHO_DO_MODELO = "Qwen/Qwen2.5-3B-Instruct"
+
+# Adapter LoRA salvo pelo tunning/02 (caminho relativo à raiz do repositório).
+# Se a pasta não existir, é ignorado; use LORA_ADAPTER_PATH no .env para forçar.
+CAMINHO_DO_ADAPTER_LORA = "pre-trained/qwen2.5-3b-medpt-lora"
+
+# Checkpoint intermediário do Trainer (pasta checkpoint-* com adapter_config.json).
+# Vazio = não usar. Tem precedência sobre CAMINHO_DO_ADAPTER_LORA se existir no disco.
+# Ex.: "data/checkpoints/qwen2.5-3b-medpt-lora/checkpoint-3750"
+CAMINHO_CHECKPOINT_LORA = ""
+
+# Mensagem de sistema alinhada ao treino (chat template); usada pelo carregador HF local.
+MENSAGEM_SISTEMA_LLM = (
+    "Você é um assistente virtual médico em português do Brasil com foco em apoio "
+    "informacional. Nunca substitua o julgamento clínico humano. Sempre explicite "
+    "limites quando houver incerteza e, em sinais de gravidade, oriente busca "
+    "imediata por atendimento médico."
+)
 
 # Caminho do arquivo CSV com as perguntas e respostas médicas
 # O CSV precisa ter duas colunas: "question" e "answer"

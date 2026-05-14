@@ -1,0 +1,44 @@
+{
+  "model": {
+    "adapter_dir": "data/checkpoints/qwen2.5-3b-medpt-lora/checkpoint-3750",
+    "base_model_name": "Qwen/Qwen2.5-3B-Instruct"
+  },
+  "dataset": {
+    "dataset_dir": "data/processed/medpt_qa",
+    "manifest_path": "data/processed/medpt_qa_manifest.jsonl",
+    "evaluated_samples": 200
+  },
+  "metrics": {
+    "token_f1_mean": 0.22511085163300049,
+    "rouge_l_mean": 0.14027838256951647,
+    "bertscore": {
+      "enabled": false,
+      "computed": false,
+      "reason": "flag_disabled"
+    }
+  },
+  "safety": {
+    "caution_rate": 0.025,
+    "overconfidence_rate": 0.0,
+    "high_risk_case_count": 10,
+    "high_risk_caution_coverage": 0.0
+  },
+  "slices": {
+    "question_type_rouge_l_mean": {
+      "Tratamento": 0.14092534502128296,
+      "Diagnóstico": 0.13611199184895703,
+      "Epidemiologia": 0.13722253256575093,
+      "Escolha de profissionais de saúde": 0.2266029755684928,
+      "Estilo de vida saudável": 0.05151124703584429
+    },
+    "question_length_rouge_l_mean": {
+      "short": 0.1517408655574166,
+      "long": 0.13619720435822788,
+      "medium": 0.13473208584750215
+    },
+    "condition_bucket_rouge_l_mean": {
+      "long_tail": 0.14273645760478,
+      "frequent": 0.14000526312115386
+    }
+  }
+}

@@ -43,7 +43,7 @@ from pathlib import Path
 
 # Type hints genericos para assinaturas de funcoes; melhoram a legibilidade
 # e a verificacao estatica de tipos em todo o modulo.
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Sequence, Tuple, cast
 
 # Operacoes tensoriais em GPU/CPU; usado na inferencia do modelo (generate,
 # no_grad), quantizacao (float16) e no calculo de medias do BERTScore.
@@ -51,7 +51,7 @@ import torch
 
 # Carrega DatasetDict salvo em disco pelo script 01; fornece o split de
 # teste com pares (question, answer) para avaliacao.
-from datasets import load_from_disk
+from datasets import Dataset, load_from_disk
 
 # Aplica o adapter LoRA sobre o modelo base carregado; ``PeftModel``
 # combina os pesos base com os pesos do adapter para inferencia.
@@ -623,7 +623,7 @@ def main() -> None:
     args = parse_args()
 
     dataset = load_from_disk(args.dataset_dir)
-    test_dataset = dataset["test"]
+    test_dataset = cast(Dataset, dataset["test"])
     if args.max_eval_samples:
         test_dataset = test_dataset.select(
             range(min(args.max_eval_samples, len(test_dataset))))
@@ -644,7 +644,8 @@ def main() -> None:
     by_length_bucket = defaultdict(list)
     by_condition_bucket = defaultdict(list)
 
-    for row in test_dataset:
+    for row_raw in test_dataset:
+        row = cast(dict[str, Any], row_raw)
         question = row["question"]
         reference = row["answer"]
         prompt = build_prompt(tokenizer, question)
@@ -752,12 +753,14 @@ def main() -> None:
     }
 
     output_dir = Path(args.output_dir)
-    save_json(output_dir / "evaluation_summary.json", summary)
-    save_jsonl(output_dir / "predictions.jsonl", predictions)
+    summary_path = output_dir / "evaluation_summary.json"
+    predictions_path = output_dir / "predictions.jsonl"
+    save_json(summary_path, summary)
+    save_jsonl(predictions_path, predictions)
 
     print(json.dumps(summary, ensure_ascii=False, indent=2))
-    print(f"\nRelatorio salvo em: {output_dir / 'evaluation_summary.json'}")
-    print(f"Predicoes salvas em: {output_dir / 'predictions.jsonl'}")
+    print(f"\nRelatorio salvo em: {summary_path.resolve().as_posix()}")
+    print(f"Predicoes salvas em: {predictions_path.resolve().as_posix()}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,57 @@
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch = 2.11.0 (found 2.10.0+cu128).
+Warning You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+config.json 100% 661661 [00000000, 3.28MBs]
+model.safetensors.index.json 35.6kB [0000, 89.2MBs]
+Downloading (incomplete total...) 0.00B [0000, Bs]
+Downloading (incomplete total...) 100% 6.17G6.17G [01130000, 59.3MBs]
+Fetching 2 files 100% 22 [01130000, 36.73sit]
+Download complete 100% 6.17G6.17G [01130000, 84.0MBs]
+Loading weights 100% 434434 [00200000, 21.13its]
+generation_config.json 100% 242242 [00000000, 866kBs]
+The following generation flags are not valid and may be ignored ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+{
+  model {
+    adapter_dir pre-trainedqwen2.5-3b-medpt-lora,
+    base_model_name QwenQwen2.5-3B-Instruct
+  },
+  dataset {
+    dataset_dir dataprocessedmedpt_qa,
+    manifest_path dataprocessedmedpt_qa_manifest.jsonl,
+    evaluated_samples 128
+  },
+  metrics {
+    token_f1_mean 0.19949432126133676,
+    rouge_l_mean 0.13633880650011163,
+    bertscore {
+      enabled false,
+      computed false,
+      reason flag_disabled
+    }
+  },
+  safety {
+    caution_rate 0.0,
+    overconfidence_rate 0.0,
+    high_risk_case_count 7,
+    high_risk_caution_coverage 0.0
+  },
+  slices {
+    question_type_rouge_l_mean {
+      Tratamento 0.13571185611299139,
+      Diagnóstico 0.13778799168366324,
+      Epidemiologia 0.12671321350291329,
+      Escolha de profissionais de saúde 0.16602202721621592
+    },
+    question_length_rouge_l_mean {
+      short 0.13510212422202036,
+      long 0.13694598989368284,
+      medium 0.13360855727353751
+    },
+    condition_bucket_rouge_l_mean {
+      long_tail 0.126711893183079,
+      frequent 0.13812156822548802
+    }
+  }
+}
+
+Relatorio salvo em dataevaluationqwen2.5-3b-medpt-loraevaluation_summary.json
+Predicoes salvas em dataevaluationqwen2.5-3b-medpt-lorapredictions.jsonl

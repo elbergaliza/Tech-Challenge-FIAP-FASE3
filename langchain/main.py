@@ -1,99 +1,218 @@
 # main.py
 # ─────────────────────────────────────────────────────────────
 # Ponto de entrada do sistema.
-# É aqui que tudo se conecta e o assistente fica disponível.
 #
 # Para rodar:
 #   python main.py
 #
 # Ordem de execução:
 #   1. Carrega o modelo (carregador_do_modelo.py)
-#   2. Constrói o banco de conhecimento RAG (banco_de_conhecimento.py)
-#   3. Monta o fluxo com os agentes (fluxo.py)
-#   4. Fica em loop esperando perguntas
+#   2. Constrói o índice de protocolos (banco_de_conhecimento.py)
+#   3. Monta o fluxo de triagem (fluxo.py)
+#   4. Fica em loop esperando sintomas
 # ─────────────────────────────────────────────────────────────
 
 from carregador_do_modelo import carregar_modelo
-from banco_de_conhecimento import obter_buscador
+from banco_de_conhecimento import construir_indice
 from fluxo import montar_fluxo
+from configs import CONFIG_DENGUE, CONFIG_COVID
+from nos.confirmacao import criar_no_confirmacao
+from nos.tratamento import criar_no_tratamento
+
+W = 55  # largura do separador
 
 
-def fazer_pergunta(pergunta: str, fluxo) -> dict:
+def _barra(char="─"):
+    return char * W
+
+
+def _score_bar(score: int) -> str:
+    """Barra visual de 10 posições proporcional ao score."""
+    preenchido = round(score / 10)
+    return f"[{'█' * preenchido}{'░' * (10 - preenchido)}] {score}/100"
+
+
+def _label_score(score: int) -> str:
+    if score >= 80:
+        return "Alta probabilidade"
+    if score >= 50:
+        return "Probabilidade moderada"
+    if score >= 20:
+        return "Baixa probabilidade"
+    return "Probabilidade muito baixa"
+
+
+def _exibir_resultado_triagem(resultado: dict):
+    doencas = resultado.get("doencas_suspeitas", [])
+    gravidade = resultado.get("gravidade", {})
+    scores = resultado.get("scores", {})
+    justificativa = resultado.get("justificativa_classificacao", "")
+    fontes = resultado.get("fontes", [])
+    alerta = resultado.get("alerta")
+    exames = resultado.get("exames_sugeridos", {})
+    fontes_exames = resultado.get("fontes_exames", {})
+
+    print("\n" + _barra("═"))
+    print("  RESULTADO DA TRIAGEM")
+    print(_barra("═"))
+
+    # ── Alerta de urgência ────────────────────────────────────
+    if alerta:
+        print(f"\n  *** {alerta} ***\n")
+
+    # ── Suspeitas com ranking ─────────────────────────────────
+    if not doencas:
+        print("\nNenhuma doença identificada com base nos sintomas informados.")
+    else:
+        print("\nSUSPEITAS DIAGNOSTICAS (ordenadas por probabilidade):\n")
+        for i, doenca in enumerate(doencas, 1):
+            score = scores.get(doenca, 50)
+            grav = gravidade.get(doenca, "—")
+            print(f"  {i}. {doenca.upper()}")
+            print(f"     Probabilidade : {_score_bar(score)}")
+            print(f"     Interpretacao : {_label_score(score)}")
+            print(f"     Gravidade     : {grav}")
+
+    # ── Justificativa ─────────────────────────────────────────
+    if justificativa:
+        print(f"\nJUSTIFICATIVA:\n")
+        for linha in justificativa.splitlines():
+            print(f"  {linha}")
+
+    # ── Fontes da classificação ───────────────────────────────
+    if fontes:
+        print(f"\nFONTES DA CLASSIFICACAO:\n")
+        for fonte in fontes:
+            print(f"  • {fonte}")
+
+    # ── Exames sugeridos ──────────────────────────────────────
+    if exames:
+        print(f"\nEXAMES SUGERIDOS:\n")
+        for doenca, lista in exames.items():
+            if not lista:
+                print(f"  {doenca.upper()}: protocolo de referência não especifica exames laboratoriais — encaminhar para avaliação especializada")
+                continue
+            print(f"  {doenca.upper()}:")
+            for exame in lista:
+                print(f"    • {exame}")
+            fontes_d = fontes_exames.get(doenca, [])
+            if fontes_d:
+                fontes_unicas = sorted(set(fontes_d))
+                print(f"    Fontes: {', '.join(fontes_unicas)}")
+
+    print("\n" + _barra())
+
+
+def _exibir_resultado_final(resultado_final: dict):
+    decisao = resultado_final.get("decisao_medica")
+    encerrar = resultado_final.get("encerrar_sem_confirmacao")
+
+    print()
+    if encerrar:
+        print("Confirmacao medica: rejeitada. Fluxo encerrado sem tratamento.")
+        print(_barra())
+        return
+
+    if decisao:
+        print(f"Decisao medica   : {decisao.upper()}")
+        if resultado_final.get("doenca_confirmada"):
+            print(f"Doenca confirmada: {resultado_final['doenca_confirmada'].upper()}")
+
+    if decisao == "confirmar":
+        tratamento = resultado_final.get("tratamento_sugerido", "")
+        fontes_t = resultado_final.get("fontes_tratamento", [])
+        print(f"\nTRATAMENTO SUGERIDO:\n")
+        print(f"  {tratamento}")
+        if fontes_t:
+            print(f"\n  Fontes:")
+            for f in fontes_t:
+                print(f"    • {f}")
+
+    if decisao == "pular":
+        tratamentos = resultado_final.get("tratamento_por_suspeita", {})
+        print(f"\nTRATAMENTOS POR SUSPEITA:\n")
+        for doenca, trat in tratamentos.items():
+            print(f"  {doenca.upper()}:")
+            print(f"    {trat}")
+
+    print(_barra())
+
+
+def fazer_triagem_inicial(sintomas: str, fluxo) -> dict:
     """
-    Envia uma pergunta para o fluxo e retorna o resultado completo.
+    Executa classificacao/gravidade/exames e retorna o estado parcial.
 
     Parâmetros:
-      pergunta - a pergunta do profissional de saúde (string)
-      fluxo    - o fluxo compilado retornado por montar_fluxo()
+      sintomas - texto livre descrevendo sintomas do paciente
+      fluxo    - grafo compilado retornado por montar_fluxo()
 
     Retorna:
-      dicionário com: pergunta, destino, resposta, agente_utilizado
+      dicionário com: doencas_suspeitas, gravidade, justificativa, fontes
     """
+    estado_inicial = {"sintomas": sintomas}
+    return fluxo.invoke(estado_inicial)
 
-    # Estado inicial: só a pergunta está preenchida, o resto está vazio
-    estado_inicial = {
-        "pergunta":         pergunta,
-        "destino":          "",   # será preenchido pelo supervisor
-        "resposta":         "",   # será preenchido pelo agente escolhido
-        "agente_utilizado": "",   # será preenchido pelo agente escolhido
-    }
 
-    # Executa o fluxo completo e retorna o estado final
-    estado_final = fluxo.invoke(estado_inicial)
-    return estado_final
+def aplicar_confirmacao_e_tratamento(
+    estado_triagem: dict,
+    dados_confirmacao: dict,
+    no_confirmacao,
+    no_tratamento,
+) -> dict:
+    """Aplica confirmacao medica e, se necessario, gera tratamento."""
+    estado = {**estado_triagem, **dados_confirmacao}
+    estado = no_confirmacao(estado)
+
+    if estado.get("encerrar_sem_confirmacao"):
+        return estado
+
+    return no_tratamento(estado)
 
 
 def main():
-    """
-    Função principal: inicializa o sistema e inicia o loop de perguntas.
-    """
+    """Função principal: inicializa o sistema e inicia o loop."""
 
-    print("=" * 55)
-    print("  Assistente Médico — Inicializando o sistema")
-    print("=" * 55)
+    print("=" * W)
+    print("  Assistente de Triagem Medica — Inicializando")
+    print("=" * W)
 
-    # ── Passo 1: Carrega o modelo ─────────────────────────────
     print("\n[1/3] Carregando o modelo de linguagem...")
     modelo = carregar_modelo()
 
-    # ── Passo 2: Carrega o banco de conhecimento ──────────────
-    print("\n[2/3] Carregando o banco de conhecimento (RAG)...")
-    buscador = obter_buscador()
+    print("\n[2/3] Construindo indice de protocolos...")
+    indice = construir_indice([CONFIG_DENGUE, CONFIG_COVID])
 
-    # ── Passo 3: Monta o fluxo com os agentes ────────────────
-    print("\n[3/3] Montando o fluxo de agentes...")
-    fluxo = montar_fluxo(modelo, buscador)
+    print("\n[3/3] Montando o fluxo de triagem...")
+    fluxo = montar_fluxo(modelo, indice, incluir_confirmacao_tratamento=False)
+    no_confirmacao = criar_no_confirmacao()
+    no_tratamento = criar_no_tratamento(indice, modelo)
 
-    print("\n" + "=" * 55)
+    print("\n" + "=" * W)
     print("  Sistema pronto! Digite 'sair' para encerrar.")
-    print("=" * 55 + "\n")
+    print("  Descreva os sintomas do paciente para classificacao.")
+    print("=" * W + "\n")
 
-    # ── Loop de perguntas ─────────────────────────────────────
     while True:
+        sintomas = input("Sintomas: ").strip()
 
-        # Lê a pergunta do usuário
-        pergunta = input("Pergunta: ").strip()
-
-        # Encerra se o usuário digitar 'sair'
-        if pergunta.lower() in ("sair", "exit", "quit"):
-            print("Encerrando o assistente. Até logo!")
+        if sintomas.lower() in ("sair", "exit", "quit"):
+            print("Encerrando o assistente. Ate logo!")
             break
 
-        # Ignora linhas em branco
-        if not pergunta:
+        if not sintomas:
             continue
 
-        # Envia a pergunta para o fluxo e recebe a resposta
-        resultado = fazer_pergunta(pergunta, fluxo)
+        resultado = fazer_triagem_inicial(sintomas, fluxo)
+        _exibir_resultado_triagem(resultado)
 
-        # Exibe o resultado formatado
-        print("\n" + "─" * 55)
-        print(f"Agente utilizado : {resultado['agente_utilizado'].upper()}")
-        print(f"\nResposta:\n{resultado['resposta']}")
-        print("─" * 55 + "\n")
+        resultado_final = aplicar_confirmacao_e_tratamento(
+            resultado,
+            {"human_in_the_loop": True},
+            no_confirmacao,
+            no_tratamento,
+        )
+        _exibir_resultado_final(resultado_final)
 
 
-# Só executa o main() se esse arquivo for rodado diretamente
-# (não executa se for importado por outro arquivo)
 if __name__ == "__main__":
     main()

@@ -1,0 +1,16 @@
+Extracao de exames de protocolo oficial. Use APENAS o contexto abaixo.
+
+DOENCA: {doenca}
+GRAVIDADE DO PACIENTE: {gravidade}
+
+CONTEXTO:
+{contexto}
+
+Retorne SOMENTE o JSON, sem markdown, sem explicacao:
+{{"exames": ["..."], "justificativa": "...", "fontes": ["fonte, p.X"]}}
+
+Regras:
+- Liste apenas exames explicitamente indicados no contexto para a gravidade "{gravidade}"
+- NAO inclua exames de grupos de gravidade mais alta do que "{gravidade}"
+- As fontes devem ser apenas do protocolo de {doenca}, nao de outros protocolos
+- Se sem evidencia suficiente para a gravidade informada: {{"exames": [], "justificativa": "Evidencia insuficiente para {gravidade}.", "fontes": []}}

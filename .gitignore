@@ -3,6 +3,10 @@ data/checkpoints/
 data/processed/
 pre-trained/
 
+# Caches locais (Hugging Face / Unsloth; não versionar)
+huggingface_tokenizers_cache/
+unsloth_compiled_cache/
+
 # Arquivos de modelo, treino e dados
 *.zip
 *.safetensors

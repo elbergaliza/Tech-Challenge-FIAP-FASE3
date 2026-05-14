@@ -1,0 +1,29 @@
+# Normalização de fim de linha (LF no repositório; evita avisos CRLF/LF no Windows)
+* text=auto
+
+*.py      text eol=lf
+*.ipynb   text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.toml    text eol=lf
+*.txt     text eol=lf
+*.sh      text eol=lf
+*.jinja   text eol=lf
+
+# Binários: não aplicar conversão de linha
+*.safetensors binary
+*.pt          binary
+*.pth         binary
+*.bin         binary
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.webp        binary
+*.ico         binary
+*.pdf         binary
+*.parquet     binary
+*.arrow       binary
+*.zip         binary

@@ -1,8 +1,10 @@
 import json
 import re
 from pathlib import Path
+from collections.abc import Sequence
 
 from banco_de_conhecimento import IndiceProtocolo, busca_hibrida
+from configs.base import ConfiguracaoProtocolo
 from nos.debug import salvar_prompt
 
 
@@ -12,7 +14,7 @@ CAMINHO_PROMPT = Path(__file__).parent.parent / "prompts" / "exames.txt"
 # gemma3:4b tem ~8192 tokens; reservamos ~2000 para prompt+resposta → ~6000 chars de contexto
 _MAX_CHARS_CONTEXTO = 4000
 
-# Número de chunks recuperados — valor conservador para não estourar o context window
+# Número de chunks recuperados
 _K_EXAMES = 5
 
 
@@ -33,8 +35,18 @@ def _parse_resposta_exames(conteudo: str) -> dict:
     }
 
 
-def criar_no_exames(indice: IndiceProtocolo, modelo):
+def criar_no_exames(
+    indice: IndiceProtocolo,
+    modelo,
+    configs: Sequence[ConfiguracaoProtocolo] | None = None,
+):
     template = CAMINHO_PROMPT.read_text(encoding="utf-8")
+
+    # Mapa nome_protocolo → template de query  ex: {"covid": "diagnóstico laboratorial {gravidade}"}
+    mapa_query: dict[str, str] = {}
+    if configs:
+        for c in configs:
+            mapa_query[c.nome] = c.query_exames
 
     def no_exames(estado: dict) -> dict:
         print("[exames] Buscando exames recomendados...")
@@ -49,7 +61,9 @@ def criar_no_exames(indice: IndiceProtocolo, modelo):
             # Normaliza para bater com config.nome (ex: "Dengue" → "dengue", "COVID-19" → "covid")
             doenca_filtro = doenca.lower().split("-")[0].split("(")[0].strip()
 
-            consulta = f"exames recomendados para {doenca} {gravidades.get(doenca, '')}"
+            gravidade = gravidades.get(doenca, "")
+            template_query = mapa_query.get(doenca_filtro, "exames complementares {gravidade}")
+            consulta = template_query.format(gravidade=gravidade)
             docs = busca_hibrida(
                 indice,
                 consulta,

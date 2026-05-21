@@ -36,6 +36,7 @@ from types import SimpleNamespace
 import httpx
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from configuracoes import HF_PIPELINE_MODEL
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -186,6 +187,7 @@ def _carregar_pipeline(origem: str, system_message: str | None):
         model=model,
         tokenizer=tokenizer,
         max_new_tokens=max_new_tokens,
+        max_length=None,
         temperature=temperature,
         repetition_penalty=repetition_penalty,
         top_p=top_p,
@@ -259,6 +261,7 @@ def _carregar_lora(adapter_dir: str, base_model_name: str, system_message: str |
         model=model,
         tokenizer=tokenizer,
         max_new_tokens=max_new_tokens,
+        max_length=None,
         temperature=temperature,
         repetition_penalty=repetition_penalty,
         top_p=top_p,
@@ -277,6 +280,7 @@ def carregar_modelo():
     _load_dotenv_both()
 
     from configuracoes import (
+        BASE_DIR,
         CAMINHO_CHECKPOINT_LORA,
         CAMINHO_DO_ADAPTER_LORA,
         CAMINHO_DO_MODELO,
@@ -292,14 +296,13 @@ def carregar_modelo():
     hf_pipeline_model = os.environ.get("HF_PIPELINE_MODEL")
 
     lora_path = _resolve_peft_adapter_dir(os.environ.get("LORA_CHECKPOINT_DIR"))
-    if lora_path is None and CAMINHO_CHECKPOINT_LORA and str(CAMINHO_CHECKPOINT_LORA).strip():
-        pck = Path(CAMINHO_CHECKPOINT_LORA)
-        if not pck.is_absolute():
-            pck = (_REPO_ROOT / pck).resolve()
-        else:
-            pck = pck.resolve()
-        if pck.is_dir() and (pck / "adapter_config.json").exists():
-            lora_path = pck
+    if lora_path is None and CAMINHO_DO_ADAPTER_LORA:
+      p = Path(CAMINHO_DO_ADAPTER_LORA)
+      if not p.is_absolute():
+        # Mudamos de _REPO_ROOT para BASE_DIR que vem de configuracoes.py
+        p = (BASE_DIR / p).resolve() 
+      if p.is_dir() and (p / "adapter_config.json").exists():
+        lora_path = p
 
     if lora_path is None:
         lora_path = _resolve_peft_adapter_dir(lora_env)
@@ -332,7 +335,7 @@ def carregar_modelo():
             f"{metadata['base_model_name']}"
         )
 
-    hf_fallback = hf_pipeline_model or CAMINHO_DO_MODELO
+    hf_fallback = os.environ.get("HF_PIPELINE_MODEL") or HF_PIPELINE_MODEL or CAMINHO_DO_MODELO
 
     if local_path:
         print(f"[carregador_do_modelo] Modelo completo no disco: {local_path}")

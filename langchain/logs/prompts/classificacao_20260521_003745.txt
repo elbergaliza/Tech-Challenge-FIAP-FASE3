@@ -1,0 +1,119 @@
+# no=classificacao | 2026-05-21T00:37:45.103388 | 6 chunks, 4026 chars de contexto
+
+Triagem médica. Use APENAS o contexto abaixo.
+
+CONTEXTO:
+[Ministério da Saúde - Protocolo de Manejo Clínico da Dengue (2024), p.28]
+SUSPEITA DE DENGUE
+Relato de febre, usualmente entre dois e sete dias de duração, e duas ou mais das seguintes manifestações: náusea, vômitos; exantema; mialgia, artralgia;  
+cefaleia, dor retro-orbital; petéquias; prova do laço positiva e leucopenia. Também pode ser considerado caso suspeito toda criança com quadro febril agudo,  
+usualmente entre dois e sete dias de duração, e sem foco de infecção aparente.
+NOTIFICAR TODO CASO SUSPEITO DE DENGUE
+SIM
+NÃO
+SIM
+NÃO
+Sem melhora do hematócrito  
+ou dos sinais de hemodinâmicos
+• Repetir fase de expansão até três vezes.
+• Manter reavaliação clínica (sinais vitais, PA, 
+avaliar diurese) após 1 hora e de hematócrito 
+em 2 horas (após conclusão de cada etapa).
+• Sem melhora clínica e laboratorial, conduzir 
+como grupo D.
+Hemoconcentração
+
+[Ministério da Saúde - Protocolo de Manejo Clínico da Dengue (2024), p.56]
+ou mais das seguintes manifestações: náuseas, vômitos, exantema, 
+mialgias, artralgias, cefaleia, dor retro-orbital, petéquias, prova do 
+laço positiva e leucopenia.
+Também pode ser considerado caso suspeito toda criança prove­
+niente de (ou residente em) área com transmissão de dengue, 
+com quadro febril agudo, entre dois e sete dias, e sem foco de 
+infecção aparente.
+10.2 CASO SUSPEITO DE DENGUE COM SINAIS 
+DE ALARME
+É todo caso de dengue que, no período de defervescência da 
+febre, apresenta um ou mais dos seguintes sinais de alarme: dor 
+abdominal intensa (referida ou à palpação) e contínua; vômitos
+
+[Ministério da Saúde - Protocolo de Manejo Clínico da Dengue (2024), p.24]
+23
+4	 Atendimento ao paciente com 
+	
+suspeita de dengue
+4.1 ANAMNESE 
+a.	 Pesquisar a presença de febre – referida ou aferida –, incluindo 
+o dia anterior à consulta. Da mesma forma, preconiza-se 
+conhecer a data de início da febre e de outros sintomas.
+b.	 Investigar a presença de sinais de alarme (item 2.2).
+c.	 Verificar a presença de alterações gastrointestinais, como 
+náuseas, vômitos, diarreia, gastrite, entre outras.
+d.	 Investigar a existência de alterações do estado da consciência, 
+como irritabilidade, sonolência, letargia, lipotimia, tontura, 
+convulsão e vertigem.
+e.	 Em relação à diurese, indagar a respeito da frequência nas 
+últimas 24 horas, do volume e da hora da última micção.
+f.	 Pesquisar se existem familiares com dengue ou dengue
+
+[Ministério da Saúde - Protocolo de Manejo Clínico da Dengue (2024), p.13]
+Secretaria de Vigilância em Saúde | MS
+12
+2.1 FASE FEBRIL
+A primeira manifestação é a febre, que tem duração de dois a sete 
+dias, geralmente alta (39oC a 40oC). É de início abrupto, associada 
+a cefaleia, adinamia, mialgias, artralgias e à dor retro-orbitária.
+Anorexia, náuseas e vômitos podem estar presentes, assim como 
+a diarreia que cursa de três a quatro evacuações por dia, cursando 
+com fezes pastosas, o que facilita o diagnóstico diferencial com 
+gastroenterites por outras causas.
+O exantema ocorre aproximadamente em 50% dos casos, é predo­
+minantemente do tipo maculopapular, atingindo face, tronco 
+e membros de forma aditiva, incluindo plantas de pés e palmas de 
+mãos. Pode se apresentar sob outras formas com ou sem prurido, 
+frequentemente no desaparecimento da febre.
+
+[Ministerio da Saude - Protocolo de Manejo Clinico do Coronavirus (COVID-19) na APS (v9), p.9]
+DESFECHO
+Apresenta sinais/
+sintomas de gravidade?
+Equipe da APS/ESF 
+fica responsável pelo 
+encaminhamento do paciente 
+para o centro de referência/
+atenção especializada
+Monitoramento por telefone, 
+a cada 24h em pessoas com 
+mais de 60 anos e portadores 
+de condições clínicas de risco 
+e a cada 48h nos demais, 
+até completar completar 14 
+dias do início dos sintomas. 
+Caso seja necessário, realizar 
+atendimento presencial, 
+idealmente no domicílio.
+DESFECHO
+NÃO
+SIM
+SÍNDROME GRIPAL LEVE
+ESTRATIFICAÇÃO DA GRAVIDADE E MANEJO CLÍNICO
+OU
+Verificar situação vacinal para gripe (se grupo de risco – gestante, crianças, 
+puérperas e idosos) e vacinar 
+[...contexto truncado...]
+
+SINTOMAS DO PACIENTE: paciente com febre alta, dor de cabeça intensa e manchas vermelhas pelo corpo
+
+Retorne SOMENTE o JSON abaixo, sem markdown, sem explicação:
+{"doencas_suspeitas": [{"doenca": "nome", "gravidade": "Grave ou Nao grave", "sintomas_compativeis": ["sintoma1"], "total_sintomas_protocolo": 0, "justificativa": "..."}], "fontes": ["fonte, p.X"]}
+
+Regras:
+- Doenças válidas: dengue, covid
+- O campo gravidade deve ser exatamente "Grave" ou "Nao grave"
+- Inclua uma doença APENAS se sintomas_compativeis não for vazio
+- sintomas_compativeis: liste APENAS os sintomas que o paciente relatou E que estão listados no protocolo para a doença — não invente sintomas não relatados
+- total_sintomas_protocolo: número total de sintomas diagnósticos da doença listados no contexto
+- A justificativa deve citar APENAS os sintomas que o paciente relatou, não copiar o protocolo inteiro
+- Ordene por número de sintomas_compativeis decrescente
+- Se sem evidência, retorne doencas_suspeitas vazio
+

@@ -63,7 +63,30 @@ def _gerar_tratamento_para_doenca(
     )
     resposta = modelo.invoke(prompt)
     conteudo = resposta.content if hasattr(resposta, "content") else str(resposta)
+    
     payload = _parse_resposta_tratamento(conteudo)
+
+    # ─── ADICIONE ESTE FALLBACK DE SEGURANÇA ───
+    tratamento_final = payload.get("tratamento", "")
+    
+    # Se o modelo gerou um JSON válido mas se recusou a preencher o tratamento:
+    if not tratamento_final.strip() and docs:
+        print("⚠️ [Aviso] Modelo omitiu o tratamento. Gerando resumo técnico dos chunks automaticamente...")
+        # Junta os trechos principais recuperados do protocolo para não deixar em branco
+        tratamento_final = "Diretrizes extraídas do protocolo:\n" + "\n".join(
+            f"- {d.page_content[:200]}..." for d in docs[:3]
+        )
+    # ───────────────────────────────────────────
+
+    justificativa = payload.get("justificativa", "")
+    if aviso_fallback:
+        justificativa = f"{justificativa} [{aviso_fallback}]".strip()
+
+    return (
+        tratamento_final, # Retorna a variável tratada com o fallback
+        payload.get("fontes", []),
+        justificativa,
+    )
 
     justificativa = payload.get("justificativa", "")
     if aviso_fallback:

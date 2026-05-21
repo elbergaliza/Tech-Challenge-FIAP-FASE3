@@ -17,11 +17,11 @@ LOGS_DIR = BASE_DIR / "logs"
 # e como fallback do pipeline quando não há LOCAL_MODEL_PATH nem adapter detectado.
 # Sem GPU, prefira Ollama ou defina HF_PIPELINE_MODEL=gpt2 (ou outro modelo leve) no .env.
 CAMINHO_DO_MODELO = "Qwen/Qwen2.5-3B-Instruct"
-
+HF_PIPELINE_MODEL="thallesf1/qwen2.5-3b-medpt-lora"
 # Adapter LoRA salvo pelo tunning/02 (caminho relativo à raiz do repositório).
 # Se a pasta não existir, é ignorado; use LORA_ADAPTER_PATH no .env para forçar.
-CAMINHO_DO_ADAPTER_LORA = "pre-trained/qwen2.5-3b-medpt-lora"
-
+#CAMINHO_DO_ADAPTER_LORA = "pre-trained/qwen2.5-3b-medpt-lora"
+CAMINHO_DO_ADAPTER_LORA = ""
 # Checkpoint intermediário do Trainer (pasta checkpoint-* com adapter_config.json).
 # Vazio = não usar. Tem precedência sobre CAMINHO_DO_ADAPTER_LORA se existir no disco.
 # Ex.: "data/checkpoints/qwen2.5-3b-medpt-lora/checkpoint-3750"
@@ -57,3 +57,4 @@ MODELO_DE_EMBEDDING = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-
 # Experimentos mostraram que peso menor evita que páginas de formulário
 # com repetição de keywords dominem sobre chunks de critérios diagnósticos
 PESO_BM25 = 0.3
+

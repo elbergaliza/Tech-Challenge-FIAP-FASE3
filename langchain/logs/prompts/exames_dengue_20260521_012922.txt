@@ -1,0 +1,98 @@
+# no=exames_dengue | 2026-05-21T01:29:22.082240 | 3 chunks, 2592 chars de contexto
+
+Extracao de exames de protocolo oficial. Use APENAS o contexto abaixo.
+
+DOENCA: dengue
+GRAVIDADE DO PACIENTE: Nao grave
+
+CONTEXTO:
+[Ministério da Saúde - Protocolo de Manejo Clínico da Dengue (2024), p.28]
+Acompanhamento
+Em leito de internação até estabilização  
+– mínimo de 48h.
+Exames complementares
+• Obrigatórios: hemograma completo, dosagem de albumina sérica e transaminases.
+• Recomendados: raio X de tórax (PA, perfil e incidência de Laurell) e USG de abdome.
+• Outros exames conforme necessidade: glicemia, ureia, creatinina, eletrólitos, gasometria, Tpae e ecocardiograma.
+• Exames específicos para confirmação de dengue são obrigatórios, mas não são essenciais para conduta clínica.
+Acompanhamento
+Em leito de UTI até estabilização – mínimo de 48h.
+• Extravasamento grave de plasma, levando ao choque 
+evidenciado por taquicardia; extremidades distais frias;  
+pulso fraco e filiforme; enchimento capilar lento  
+(>2 segundos); pressão arterial convergente (<20 mmHg);
+
+[Ministério da Saúde - Protocolo de Manejo Clínico da Dengue (2024), p.28]
+evidenciado por taquicardia; extremidades distais frias;  
+pulso fraco e filiforme; enchimento capilar lento  
+(>2 segundos); pressão arterial convergente (<20 mmHg); 
+taquipneia; oliguria (<1,5 mL/kg/h); hipotensão arterial 
+(fase tardia do choque); cianose (fase tardia do choque); 
+acumulação de líquidos com insuficiência respiratória.
+• Sangramento grave.
+• Comprometimento grave de órgãos.
+GRUPO D
+Dengue grave
+GRUPO A
+Dengue sem sinais de alarme,  
+sem condição especial, 
+sem risco social e sem 
+comorbidades.
+Acompanhamento
+Ambulatorial.
+Exames complementares
+A critério médico.
+Conduta
+Hidratação oral
+Adulto
+60 mL/kg/dia, sendo 1/3  
+com sais de reidratação oral 
+e no início com volume maior. 
+Para os 2/3 restantes, orientar 
+a ingestão de líquidos 
+caseiros (água, suco de frutas,
+
+[Ministério da Saúde - Protocolo de Manejo Clínico da Dengue (2024), p.28]
+Hidratação oral
+Adulto
+60 mL/kg/dia, sendo 1/3  
+com sais de reidratação oral 
+e no início com volume maior. 
+Para os 2/3 restantes, orientar 
+a ingestão de líquidos 
+caseiros (água, suco de frutas, 
+soro caseiro, chás, água  
+de coco etc.).
+Crianças (<13 anos) 
+• Até 10 kg: 130 mL/kg/dia;
+• Acima de 10 kg a 20 kg:  
+100 mL/kg/dia; 
+• Acima de 20 kg: 80 mL/kg/dia.
+GRUPO B*
+Dengue sem sinais de alarme,  
+com condição especial,  
+ou com risco social e  
+com comorbidades.
+Acompanhamento
+Em leito de observação  
+até resultado de exames  
+e reavaliação clínica.
+Exames complementares
+Hemograma completo: obrigatório.
+Conduta
+Hidratação oral (conforme Grupo A)  
+até o resultado dos exames.
+Alta 
+Retorno diário para reavaliação  
+clínica e laboratorial (até 48 horas 
+após a remissão da febre).
+
+Retorne SOMENTE o JSON, sem markdown, sem explicacao:
+{"exames": ["..."], "justificativa": "...", "fontes": ["fonte, p.X"]}
+
+Regras:
+- Liste apenas exames explicitamente indicados no contexto para a gravidade "Nao grave"
+- NAO inclua exames de grupos de gravidade mais alta do que "Nao grave"
+- As fontes devem ser apenas do protocolo de dengue, nao de outros protocolos
+- Se sem evidencia suficiente para a gravidade informada: {"exames": [], "justificativa": "Evidencia insuficiente para Nao grave.", "fontes": []}
+

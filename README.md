@@ -1,6 +1,76 @@
 # Assistente Médico
 
-Sistema de assistente médico com RAG e agentes especializados.
+Sistema de assistente médico com RAG e agentes especializados para triagem de Dengue e COVID-19, usando modelo fine-tuned no Hugging Face Hub.
+
+---
+
+## Execução Rápida
+
+### Opção 1: Google Colab (recomendado — sem instalação local)
+
+Abra o notebook [`langchain/Prompt-execucao.ipynb`](langchain/Prompt-execucao.ipynb) no Google Colab:
+
+1. **Runtime → Change runtime type → GPU (T4)**
+2. Execute todas as células na ordem
+
+O notebook clona o repositório, instala dependências e carrega o modelo fine-tuned [`thallesf1/qwen2.5-3b-medpt-lora`](https://huggingface.co/thallesf1/qwen2.5-3b-medpt-lora) diretamente do Hugging Face Hub.
+
+### Opção 2: Execução local via terminal (`main.py`)
+
+```bash
+# 1. Clonar o repositório
+git clone https://github.com/elbergaliza/Tech-Challenge-FIAP-FASE3.git
+cd Tech-Challenge-FIAP-FASE3
+
+# 2. Criar ambiente virtual e instalar dependências
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Executar o assistente de triagem
+cd langchain
+python main.py
+```
+
+O `main.py` inicia um loop interativo onde você descreve sintomas e recebe a triagem completa (classificação, gravidade, exames e tratamento).
+
+---
+
+## Modelos disponíveis
+
+O sistema suporta diferentes backends de LLM. A prioridade de carregamento é definida por variáveis de ambiente (`.env` na raiz) ou em [`langchain/configuracoes.py`](langchain/configuracoes.py):
+
+| Modelo | Como usar | Descrição |
+|--------|-----------|-----------|
+| [`thallesf1/qwen2.5-3b-medpt-lora`](https://huggingface.co/thallesf1/qwen2.5-3b-medpt-lora) | `HF_PIPELINE_MODEL=thallesf1/qwen2.5-3b-medpt-lora` | **Padrão.** Modelo fine-tuned com LoRA, publicado no Hub. Requer GPU. |
+| `Qwen/Qwen2.5-3B-Instruct` | `HF_PIPELINE_MODEL=Qwen/Qwen2.5-3B-Instruct` | Modelo base sem fine-tuning. |
+| Ollama (qualquer modelo) | `OLLAMA_BASE_URL=http://localhost:11434` | API compatível OpenAI via Ollama. Funciona sem GPU. |
+| Adapter LoRA local | `LORA_ADAPTER_PATH=./pre-trained/qwen2.5-3b-medpt-lora` | Adapter PEFT salvo no disco (produzido pelo treino). |
+| Modelo mergeado local | `LOCAL_MODEL_PATH=./modelo-completo` | Modelo causal completo já mergeado no disco. |
+
+**Ordem de prioridade:** `LOCAL_MODEL_PATH` → `LORA_CHECKPOINT_DIR` → `LORA_ADAPTER_PATH` → `OLLAMA_BASE_URL` → `HF_PIPELINE_MODEL`
+
+Exemplo de `.env`:
+```env
+HF_PIPELINE_MODEL=thallesf1/qwen2.5-3b-medpt-lora
+# LOCAL_MAX_NEW_TOKENS=512
+# LOCAL_TEMPERATURE=0.3
+```
+
+---
+
+## Fine-Tuning: como o modelo foi treinado e publicado
+
+O modelo [`thallesf1/qwen2.5-3b-medpt-lora`](https://huggingface.co/thallesf1/qwen2.5-3b-medpt-lora) foi treinado com LoRA no `Qwen/Qwen2.5-3B-Instruct` usando o notebook [`tunning/05_treino_completo_colab.ipynb`](tunning/05_treino_completo_colab.ipynb).
+
+O notebook faz tudo de uma vez no Google Colab (T4 GPU):
+1. Instala dependências (Unsloth, TRL, PEFT)
+2. Baixa e prepara o dataset MedPT + exemplos sintéticos de extração JSON
+3. Treina LoRA (rank 32, alpha 64, 1 epoch)
+4. Faz merge dos pesos (LoRA + base → 16-bit)
+5. Publica o modelo mergeado no HuggingFace Hub
+
+Para re-treinar ou publicar seu próprio modelo, edite as configurações no início do notebook (`HF_USERNAME`, `HF_TOKEN`, hiperparâmetros) e execute todas as células.
 
 ---
 
@@ -165,23 +235,26 @@ Relatórios padrão em `data/evaluation/qwen2.5-3b-medpt-lora/` (`evaluation_sum
 
 ---
 
-## Triagem LangChain (`langchain/`) e artefatos do treino
+## Triagem LangChain (`langchain/`)
 
-O assistente de triagem em [langchain/main.py](langchain/main.py) carrega o LLM via [langchain/carregador_do_modelo.py](langchain/carregador_do_modelo.py). Para usar o **adapter LoRA** produzido pelo [tunning/02_finetune_lora.py](tunning/02_finetune_lora.py):
+O assistente de triagem em [langchain/main.py](langchain/main.py) carrega o LLM via [langchain/carregador_do_modelo.py](langchain/carregador_do_modelo.py).
 
-1. **Copiar do Colab (ou da máquina onde treinou)** para a **raiz deste repositório** a pasta `pre-trained/qwen2.5-3b-medpt-lora/` (mínimo: `adapter_config.json`, pesos do adapter, tokenizer e, se existir, `training_metadata.json`).
-2. **Checkpoint intermediário (opcional):** copiar `data/checkpoints/<saida-do-trainer>/checkpoint-NNNN/` e definir no `.env` a variável `LORA_CHECKPOINT_DIR`, **ou** preencher `CAMINHO_CHECKPOINT_LORA` em [langchain/configuracoes.py](langchain/configuracoes.py). A pasta deve conter `adapter_config.json`.
-3. Na raiz do repositório, crie um arquivo `.env` a partir de [.env.example](.env.example). O [`.vscode/launch.json`](.vscode/launch.json) já usa `envFile` apontando para esse arquivo.
-4. Variáveis úteis: `LORA_ADAPTER_PATH`, `LORA_CHECKPOINT_DIR`, `LORA_BASE_MODEL` (opcional se existir `base_model_name` em `training_metadata.json`), `LLM_SYSTEM_MESSAGE`, `LORA_AUTO_DISCOVER`, `LOCAL_MODEL_PATH`, `HF_PIPELINE_MODEL`, `OLLAMA_*`.
-5. Dependências para inferência local com LoRA: `peft`, `transformers`, `torch`; em GPU, `bitsandbytes` (como no Colab). Use `pip install -r requirements.txt` na raiz do repositório.
-6. O RAG dos protocolos ([langchain/banco_de_conhecimento.py](langchain/banco_de_conhecimento.py)) usa PDFs em `langchain/dados/` e o modelo de embedding em `configuracoes.py`; **não** depende de `data/processed/` nem de `data/evaluation/` do tuning.
+**Formas de executar:**
 
-Execução típica (com `cwd` em `langchain/`, como no launch do VS Code):
+| Método | Comando / Arquivo | Descrição |
+|--------|-------------------|-----------|
+| Google Colab | [`langchain/Prompt-execucao.ipynb`](langchain/Prompt-execucao.ipynb) | Clona repo, instala deps, carrega modelo do HF Hub e executa triagem |
+| Terminal local | `cd langchain && python main.py` | Loop interativo de triagem (requer GPU para modelo HF) |
 
-```bash
-cd langchain
-python main.py
-```
+Para usar o **adapter LoRA local** (em vez do modelo do Hub):
+
+1. Copie a pasta `pre-trained/qwen2.5-3b-medpt-lora/` para a raiz do repositório (mínimo: `adapter_config.json`, pesos, tokenizer).
+2. Defina `LORA_ADAPTER_PATH=pre-trained/qwen2.5-3b-medpt-lora` no `.env`.
+3. Para checkpoint intermediário: defina `LORA_CHECKPOINT_DIR` no `.env`.
+
+Dependências para inferência local: `pip install -r requirements.txt`
+
+O RAG dos protocolos ([langchain/banco_de_conhecimento.py](langchain/banco_de_conhecimento.py)) usa PDFs em `langchain/dados/` e o modelo de embedding em `configuracoes.py`; **não** depende dos artefatos do tuning.
 
 ---
 
@@ -210,24 +283,7 @@ assistente_medico/
 
 ---
 
-## Como rodar pela primeira vez
-
-```bash
-# 1. Instalar as dependências
-pip install -r requirements.txt
-
-# 2. Gerar o dataset de exemplo (só precisa fazer uma vez)
-python gerar_dados_sinteticos.py
-
-# 3. Iniciar o assistente
-python main.py
-```
-
----
-
-## Como apontar o modelo de linguagem (LoRA, Hub ou Ollama)
-
-Use [langchain/configuracoes.py](langchain/configuracoes.py) (`CAMINHO_DO_MODELO`, `CAMINHO_DO_ADAPTER_LORA`, `CAMINHO_CHECKPOINT_LORA`, `MENSAGEM_SISTEMA_LLM`) e o arquivo `.env` na raiz (veja [.env.example](.env.example) e a secção **Triagem LangChain** acima). O carregador lê `training_metadata.json` junto ao adapter para preencher **modelo base** e **mensagem de sistema** quando `LORA_BASE_MODEL` e `LLM_SYSTEM_MESSAGE` não estão definidos no ambiente.
+## Notas sobre o RAG e o banco de vetores
 
 **Não** apague `langchain/dados/banco_de_vetores` apenas por trocar o LLM de geração: esse índice cobre os protocolos em PDF e é independente do fine-tuning. Recrie o banco só se alterar o modelo de **embedding** em `configuracoes.py` ou os PDFs indexados.
 

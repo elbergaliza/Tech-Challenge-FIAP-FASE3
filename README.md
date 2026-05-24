@@ -17,8 +17,6 @@ O notebook clona o repositório, instala dependências e carrega o modelo fine-t
 
 ### Opção 2: Execução local via terminal — sem modelo fine-tuned (`main.py`)
 
-Para rodar localmente **sem GPU e sem o modelo fine-tuned**, utilize o Ollama como backend:
-
 ```bash
 # 1. Clonar o repositório
 git clone https://github.com/elbergaliza/Tech-Challenge-FIAP-FASE3.git
@@ -29,21 +27,16 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# 3. Instalar e iniciar o Ollama (https://ollama.com)
-ollama pull qwen2.5:3b
-
-# 4. Configurar o .env para usar Ollama
-echo 'OLLAMA_BASE_URL=http://localhost:11434' > langchain/.env
-echo 'OLLAMA_MODEL=qwen2.5:3b' >> langchain/.env
-
-# 5. Executar o assistente de triagem
+# 3. Executar o assistente de triagem
 cd langchain
 python main.py
 ```
 
 O `main.py` inicia um loop interativo onde você descreve sintomas e recebe a triagem completa (classificação, gravidade, exames e tratamento).
 
-> **Nota:** A execução local via Ollama utiliza o modelo base sem fine-tuning. Para melhores resultados na triagem médica, prefira a execução via Colab (Opção 1) que usa o modelo fine-tuned.
+Por padrão, a execução local utiliza o modelo base `Qwen/Qwen2.5-3B-Instruct` sem fine-tuning. Consulte a seção **Modelos disponíveis** para configurar outros backends (Ollama, adapter LoRA local, etc.).
+
+> **Nota:** A execução local usa o modelo base sem fine-tuning. Para melhores resultados na triagem médica, prefira a execução via Colab (Opção 1) que usa o modelo fine-tuned.
 
 ---
 

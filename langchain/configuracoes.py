@@ -17,7 +17,7 @@ LOGS_DIR = BASE_DIR / "logs"
 # e como fallback do pipeline quando não há LOCAL_MODEL_PATH nem adapter detectado.
 # Sem GPU, prefira Ollama ou defina HF_PIPELINE_MODEL=gpt2 (ou outro modelo leve) no .env.
 CAMINHO_DO_MODELO = "Qwen/Qwen2.5-3B-Instruct"
-HF_PIPELINE_MODEL="thallesf1/qwen2.5-3b-medpt-lora"
+HF_PIPELINE_MODEL="Qwen/Qwen2.5-3B-Instruct"
 # Adapter LoRA salvo pelo tunning/02 (caminho relativo à raiz do repositório).
 # Se a pasta não existir, é ignorado; use LORA_ADAPTER_PATH no .env para forçar.
 #CAMINHO_DO_ADAPTER_LORA = "pre-trained/qwen2.5-3b-medpt-lora"
